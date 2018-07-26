@@ -5,6 +5,7 @@
 #include <vector>
 #include <stack>
 #include <list>
+#include <cmath>
 #include "myutil.h"
 #include "BeastDecoder.h"
 
@@ -133,89 +134,9 @@ unsigned int* find_ranges(unsigned int n, unsigned int k, unsigned int* a)
     return ranges;
 }
 
-/*Node** construct_trellis(unsigned int n, unsigned int k, bool** h)
-{
-    std::list<unsigned int> active_symb;
-    Node **nodelayers = new Node*[n+1];
-    nodelayers[0] = new Node[1];
-    int *ranges = new int[2*k];
-    find_ranges(n, k, h, ranges);
-    nodelayers[0][0].number = 0;
-    nodelayers[0][0].metric = 0;
-    nodelayers[0][0].layer = 0;
-    nodelayers[0][0].pathfwd0 = nullptr;
-    nodelayers[0][0].pathfwd1 = nullptr;
-    nodelayers[0][0].pathbkw0 = nullptr;
-    nodelayers[0][0].pathbkw1 = nullptr;
-    unsigned int tempnum;
-    unsigned int curnum, xornum;
-    unsigned int prevsize = 1;
-    unsigned int newsize;
-    unsigned int ind;
-    unsigned int act_num;
-    active_symb.push_back(0);
-    for(unsigned int j=0; j<n; ++j)
-    {
-        newsize = 1<<(active_symb.size());
-        nodelayers[j+1] = new Node[newsize];
-        tempnum = 0;
-        for(unsigned int i=0; i<newsize; ++i)
-        {
-            act_num = 0;
-            ind = 0;
-            for(auto active = active_symb.begin(); active != active_symb.end(); ++active)
-            {
-                act_num ^= ((tempnum & (1 << ind)) >> ind) << (*active);
-                ++ind;
-            }
-            nodelayers[j+1][i].number = act_num;
-            nodelayers[j+1][i].layer = j + 1;
-            nodelayers[j+1][i].metric = -1;
-            nodelayers[j+1][i].pathfwd0 = nullptr;
-            nodelayers[j+1][i].pathfwd1 = nullptr;
-            nodelayers[j+1][i].pathbkw0 = nullptr;
-            nodelayers[j+1][i].pathbkw1 = nullptr;
-            tempnum += 1;
-        }
-        for(unsigned int i=0; i<prevsize; ++i)
-        {
-            curnum = nodelayers[j][i].number;
-            xornum = curnum;
-            for(unsigned int l=0; l<k; ++l)
-            {
-                xornum ^= ((h[l][j] ? 1 : 0) << l);
-            }
-            for(unsigned int l=0; l<newsize; ++l)
-            {
-                if(nodelayers[j+1][l].number == curnum)
-                {
-                    nodelayers[j][i].pathfwd0 = nodelayers[j+1] + l;
-                    nodelayers[j+1][l].pathbkw0 = nodelayers[j] + i;
-                }
-                if(nodelayers[j+1][l].number == xornum)
-                {
-                    nodelayers[j][i].pathfwd1 = nodelayers[j+1] + l;
-                    nodelayers[j+1][l].pathbkw1 = nodelayers[j] + i;
-                }
-            }
-        }
-        active_symb.clear();
-        for(unsigned int i=0; i<k; ++i)
-        {
-            if((j+1) >= ranges[2*i] && (j+1) < ranges[2*i+1])
-            {
-                active_symb.push_back(i);
-            }
-        }
-        prevsize = newsize;
-    }
-    nodelayers[n][0].metric = 0;
-    delete [] ranges;
-    return nodelayers;
-} */
-
 BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, const char* matrix_file)
 {
+    // Transforming matrix to minspan form and finding ative ranges of it's rows
     this->n = n;
     this->k = k;
     h = readMatrix(matrix_file, n, k);
@@ -229,58 +150,157 @@ BeastDecoder::~BeastDecoder()
     delete[] ranges;
 }
 
-inline double metric(double x, bool y)
+inline double metric(double x, int y)
 {
-    return y ? (x-1)*(x-1) : x*x;
+    return fabs(y - x);
 }
 
 void BeastDecoder::decode(double *x, unsigned int *u, double delta)
 {
-
-}
-
-/*void printTree(Node start)
-{
-    std::deque<Node> outputDeque;
-    outputDeque.push_back(start);
-    bool flag;
+    std::list<Node> fwdTree, bkwTree; // forward and backward trees
+    // Initializing starting nodes
     Node temp;
-    while(!outputDeque.empty())
-    {
-        temp = outputDeque.front();
-        outputDeque.pop_front();
-        std::cout<<"Layer: "<<temp.layer<<"\n";
-        std::cout<<"Number: "<<temp.number<<"\n";
-        if(temp.pathfwd0 != nullptr) {
-            std::cout << "0 -> " << (*temp.pathfwd0).number << "\n";
-            flag = true;
-            for(auto elem = outputDeque.begin(); elem != outputDeque.end(); ++elem)
-            {
-                if(elem->layer == (*temp.pathfwd0).layer && elem->number == (*temp.pathfwd0).number)
-                {
-                    flag = false;
-                    break;
+    temp.number = 0;
+    temp.layer = 0;
+    temp.metric = 0;
+    temp.path.resize(0);
+    temp.path0 = true;
+    temp.path1 = true;
+    fwdTree.push_back(temp);
+    temp.number = 0;
+    temp.layer = n;
+    temp.metric = 0;
+    temp.path.resize(0);
+    temp.path0 = true;
+    temp.path1 = true;
+    bkwTree.push_back(temp);
+    unsigned int layerMask; // a mask that denotes zero bit-positions on a layer
+    double metricBound = 0; // target metric bound
+    double min_metric = -1;
+    std::vector<unsigned int> min_candidate;
+    while(min_metric == -1) {
+        metricBound += delta;
+        // Growing forward tree
+        for (auto iter = fwdTree.begin(); iter != fwdTree.end(); ++iter) {
+            // Getting layerMask for current layer
+            layerMask = 0;
+            for (unsigned int i = 0; i < k; ++i) {
+                if (iter->layer < ranges[2 * i] || iter->layer >= ranges[2 * i + 1]) {
+                    layerMask ^= (1 << i);
                 }
             }
-            if(flag) {
-                outputDeque.push_back((*temp.pathfwd0));
+            // If transition with input 0 is possible, add node to the list
+            if (iter->path0 && !(iter->number & layerMask) && (iter->metric < metricBound)) {
+                temp.number = iter->number;
+                temp.layer = iter->layer + 1;
+                temp.metric = iter->metric + metric(x[iter->layer], -1);
+                temp.path = iter->path;
+                temp.path.push_back(0);
+                // Inserting new node in sorted list
+                for (auto iterSort = iter;; ++iterSort) {
+                    if (iterSort == fwdTree.end() ||
+                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
+                        (iterSort->layer > temp.layer)) {
+                        fwdTree.insert(iterSort, temp);
+                        break;
+                    }
+                }
+                iter->path0 = false;
+            }
+            // Same for input 1
+            if (iter->path1 && !((iter->number ^ h[iter->layer]) & layerMask) && iter->metric < metricBound) {
+                temp.number = iter->number ^ h[iter->layer];
+                temp.layer = iter->layer + 1;
+                temp.metric = iter->metric + metric(x[iter->layer], 1);
+                temp.path = iter->path;
+                temp.path.push_back(1);
+                for (auto iterSort = iter;; ++iterSort) {
+                    if (iterSort == fwdTree.end() ||
+                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
+                        (iterSort->layer > temp.layer)) {
+                        fwdTree.insert(iterSort, temp);
+                        break;
+                    }
+                }
+                iter->path1 = false;
             }
         }
-        if(temp.pathfwd1 != nullptr) {
-            std::cout << "1 -> " << (*temp.pathfwd1).number << "\n";
-            flag = true;
-            for(auto elem = outputDeque.begin(); elem != outputDeque.end(); ++elem)
-            {
-                if(elem->layer == (*temp.pathfwd1).layer && elem->number == (*temp.pathfwd1).number)
-                {
-                    flag = false;
-                    break;
+        // Growing backward tree
+        for (auto iter = bkwTree.rbegin(); iter != bkwTree.rend(); ++iter) {
+            layerMask = 0;
+            for (unsigned int i = 0; i < k; ++i) {
+                if ((iter->layer-1) <= ranges[2 * i] || (iter->layer-1) > ranges[2 * i + 1]) {
+                    layerMask ^= (1 << i);
                 }
             }
-            if(flag) {
-                outputDeque.push_back((*temp.pathfwd1));
+            // The difference between forward tree is in third condition
+            if (iter->path0 && !(iter->number & layerMask) && (iter->metric + metric(x[iter->layer-1], -1)) < metricBound) {
+                temp.number = iter->number;
+                temp.layer = iter->layer - 1;
+                temp.metric = iter->metric + metric(x[iter->layer-1], -1);
+                temp.path = iter->path;
+                temp.path.insert(temp.path.begin(), 0);
+                for (auto iterSort = bkwTree.begin();; ++iterSort) {
+                    if (iterSort == bkwTree.end() ||
+                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
+                        (iterSort->layer > temp.layer)) {
+                        bkwTree.insert(iterSort, temp);
+                        break;
+                    }
+                }
+                iter->path0 = false;
+            }
+            if (iter->path1 && !((iter->number ^ h[iter->layer-1]) & layerMask) &&
+                (iter->metric + metric(x[iter->layer-1], 1)) < metricBound) {
+                temp.number = iter->number ^ h[iter->layer];
+                temp.layer = iter->layer - 1;
+                temp.metric = iter->metric + metric(x[iter->layer-1], 1);
+                temp.path = iter->path;
+                temp.path.insert(temp.path.begin(), 1);
+                for (auto iterSort = bkwTree.begin();; ++iterSort) {
+                    if (iterSort == bkwTree.end() ||
+                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
+                        (iterSort->layer > temp.layer)) {
+                        bkwTree.insert(iterSort, temp);
+                        break;
+                    }
+                }
+                iter->path1 = false;
             }
         }
-        std::cout<<"---\n";
+        // Looking for matches in sorted lists
+        auto fwdIter = fwdTree.begin();
+        auto bkwIter = bkwTree.begin();
+        double tempMetric;
+        while(fwdIter != fwdTree.end() && bkwIter != bkwTree.end())
+        {
+            if(fwdIter->layer == bkwIter->layer && fwdIter->number == bkwIter->number)
+            {
+                tempMetric = fwdIter->metric + bkwIter->metric;
+                if(min_metric == -1 || tempMetric < min_metric) {
+                    // Found a match, storing it
+                    min_metric = tempMetric;
+                    min_candidate.resize(fwdIter->path.size() + bkwIter->path.size());
+                    min_candidate.insert(min_candidate.end(), fwdIter->path.begin(), fwdIter->path.end());
+                    min_candidate.insert(min_candidate.end(), bkwIter->path.begin(), bkwIter->path.end());
+                }
+                ++fwdIter;
+                ++bkwIter;
+            }
+            else if((fwdIter->layer < bkwIter->layer) ||
+                    (fwdIter->layer == bkwIter->layer && fwdIter->number < bkwIter->number))
+            {
+                ++fwdIter;
+            }
+            else
+            {
+                ++bkwIter;
+            }
+        }
     }
-}*/
+    // Outputting the result
+    for(unsigned int i=0; i<n; ++i)
+    {
+        u[i] = min_candidate[i];
+    }
+}

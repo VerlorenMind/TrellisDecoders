@@ -52,32 +52,26 @@ TEST_CASE("Ranges can be found")
     delete[] ranges;
 }
 
-
-/*TEST_CASE("Simple trellis can be constructed")
+TEST_CASE("Can decode simple word")
 {
-    bool genmat_c[3][6] = {
-            {1, 1, 1, 0, 0, 0},
-            {0, 1, 1, 1, 1, 0},
-            {0, 0, 1, 0, 1, 1}
-    };
-    bool** genmat = new bool*[3];
-    genmat[0] = (bool*)&(genmat_c[0]);
-    genmat[1] = (bool*)&(genmat_c[1]);
-    genmat[2] = (bool*)&(genmat_c[2]);
-    Node** result;
-    std::deque<Node> outputDeque;
+    BeastDecoder dec(6, 3, "../tests/test_matrix");
+    double* x = new double[6];
+    unsigned int* u = new unsigned int[6];
+    double delta = 0.5;
+    x[0] = -1.5;
+    x[1] = -0.5;
+    x[2] = -1.7;
+    x[3] = -1.9;
+    x[4] = -2.0;
+    x[5] = -1.0;
 
-    result = construct_trellis(6, 3, genmat);
+    dec.decode(x, u, delta);
 
-    REQUIRE(result[0][0].number == 0);
-    REQUIRE(result[6][0].number == 0);
-    printTree(result[0][0]);
-
-    delete [] genmat;
-    for(unsigned int i=0; i<7; ++i)
+    for(unsigned int i=0; i<6; ++i)
     {
-        delete [] result[i];
+        REQUIRE(u[0] == 0);
     }
-    delete [] result;
 
-}*/
+    delete[] x;
+    delete[] u;
+}
