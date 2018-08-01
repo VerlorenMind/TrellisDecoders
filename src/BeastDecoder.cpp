@@ -9,10 +9,9 @@
 #include "myutil.h"
 #include "BeastDecoder.h"
 
-unsigned int* readMatrix(const char* filename, unsigned int n, unsigned int k)
+unsigned int* readMatrix(std::ifstream& input, unsigned int n, unsigned int k)
 {
     // Reading matrix from a file and storing it's columns as uints
-    std::ifstream input(filename);
     unsigned int* matrix = new unsigned int[n];
     for(unsigned int i=0; i<n; ++i)
     {
@@ -134,12 +133,12 @@ unsigned int* find_ranges(unsigned int n, unsigned int k, unsigned int* a)
     return ranges;
 }
 
-BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, const char* matrix_file)
+BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename)
 {
     // Transforming matrix to minspan form and finding ative ranges of it's rows
     this->n = n;
     this->k = k;
-    h = readMatrix(matrix_file, n, k);
+    h = readMatrix(filename, n, k);
     minspan_form(n, k, h);
     ranges = find_ranges(n, k, h);
 }
@@ -155,9 +154,9 @@ inline double metric(double x, int y)
     return fabs(y - x);
 }
 
-void BeastDecoder::decode(double *x, unsigned int *u, double delta)
+double BeastDecoder::decode(double *x, unsigned int *u, double delta)
 {
-    std::list<Node> fwdTree, bkwTree; // forward and backward trees
+    std::list<Node> fwdTree, bkwTree; // forward and backward trees TODO: look up std::set
     // Initializing starting nodes
     Node temp;
     temp.number = 0;
@@ -190,7 +189,10 @@ void BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 }
             }
             // If transition with input 0 is possible, add node to the list
-            if (iter->path0 && !(iter->number & layerMask) && (iter->metric < metricBound)) {
+            if (iter->layer < n &&
+                    iter->path0 &&
+                    !(iter->number & layerMask) &&
+                    (iter->metric < metricBound)) {
                 temp.number = iter->number;
                 temp.layer = iter->layer + 1;
                 temp.metric = iter->metric + metric(x[iter->layer], -1);
@@ -208,7 +210,10 @@ void BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 iter->path0 = false;
             }
             // Same for input 1
-            if (iter->path1 && !((iter->number ^ h[iter->layer]) & layerMask) && iter->metric < metricBound) {
+            if (iter->layer < n &&
+                    iter->path1 &&
+                    !((iter->number ^ h[iter->layer]) & layerMask) &&
+                    iter->metric < metricBound) {
                 temp.number = iter->number ^ h[iter->layer];
                 temp.layer = iter->layer + 1;
                 temp.metric = iter->metric + metric(x[iter->layer], 1);
@@ -234,7 +239,10 @@ void BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 }
             }
             // The difference between forward tree is in third condition
-            if (iter->path0 && !(iter->number & layerMask) && (iter->metric + metric(x[iter->layer-1], -1)) < metricBound) {
+            if (iter->layer > 0 &&
+                    iter->path0 &&
+                    !(iter->number & layerMask) &&
+                    (iter->metric + metric(x[iter->layer-1], -1)) < metricBound) {
                 temp.number = iter->number;
                 temp.layer = iter->layer - 1;
                 temp.metric = iter->metric + metric(x[iter->layer-1], -1);
@@ -250,9 +258,11 @@ void BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 }
                 iter->path0 = false;
             }
-            if (iter->path1 && !((iter->number ^ h[iter->layer-1]) & layerMask) &&
+            if (iter->layer > 0 &&
+                    iter->path1 &&
+                    !((iter->number ^ h[iter->layer-1]) & layerMask) &&
                 (iter->metric + metric(x[iter->layer-1], 1)) < metricBound) {
-                temp.number = iter->number ^ h[iter->layer];
+                temp.number = iter->number ^ h[iter->layer-1];
                 temp.layer = iter->layer - 1;
                 temp.metric = iter->metric + metric(x[iter->layer-1], 1);
                 temp.path = iter->path;
@@ -280,7 +290,6 @@ void BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 if(min_metric == -1 || tempMetric < min_metric) {
                     // Found a match, storing it
                     min_metric = tempMetric;
-                    min_candidate.resize(fwdIter->path.size() + bkwIter->path.size());
                     min_candidate.insert(min_candidate.end(), fwdIter->path.begin(), fwdIter->path.end());
                     min_candidate.insert(min_candidate.end(), bkwIter->path.begin(), bkwIter->path.end());
                 }
@@ -303,4 +312,5 @@ void BeastDecoder::decode(double *x, unsigned int *u, double delta)
     {
         u[i] = min_candidate[i];
     }
+    return min_metric;
 }

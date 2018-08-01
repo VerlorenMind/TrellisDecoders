@@ -2,6 +2,7 @@
 #define BEAST_UTIL_H
 
 #include "BeastDecoder.h"
+#include <sstream>
 
 template<class T>
 void print_matrix(unsigned int n, unsigned int k, T** m)
@@ -26,5 +27,15 @@ void print_vector(unsigned int n, T* v)
     std::cout<<"\n";
 }
 
+template<class T>
+std::stringstream array_to_sstream(unsigned int size, T* a)
+{
+    std::stringstream result;
+    for(unsigned int i=0; i<size; ++i)
+    {
+        result << a[i] <<" ";
+    }
+    return result;
+}
 
 #endif //BEAST_UTIL_H
