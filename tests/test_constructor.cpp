@@ -11,7 +11,7 @@ const double EPSILON = 0.0000001;
 TEST_CASE("Can read matrix from file")
 {
     std::ifstream filename("../tests/test_matrix");
-    unsigned int* matrix = readMatrix(filename, 6, 3);
+    uint64_t* matrix = readMatrix(filename, 6, 3);
 
     REQUIRE(matrix[0] == 0b111);
     REQUIRE(matrix[1] == 0b100);
@@ -26,7 +26,7 @@ TEST_CASE("Can read matrix from file")
 TEST_CASE("Minspan form is achieved")
 {
     std::ifstream filename("../tests/test_matrix");
-    unsigned int* matrix = readMatrix(filename, 6, 3);
+    uint64_t* matrix = readMatrix(filename, 6, 3);
 
     minspan_form(6, 3, matrix);
 
@@ -43,7 +43,7 @@ TEST_CASE("Minspan form is achieved")
 TEST_CASE("Ranges can be found")
 {
     std::ifstream filename("../tests/test_matrix");
-    unsigned int* matrix = readMatrix(filename, 6, 3);
+    uint64_t* matrix = readMatrix(filename, 6, 3);
 
     unsigned int* ranges = find_ranges(6, 3, matrix);
 
@@ -61,7 +61,7 @@ TEST_CASE("Ranges can be found")
 TEST_CASE("Can decode zero word")
 {
     std::ifstream filename("../tests/test_matrix");
-    unsigned int* g;
+    uint64_t* g;
     g = readMatrix(filename, 6, 3);
     BeastDecoder dec(6, 3, filename);
     double* x = new double[6];
@@ -89,17 +89,17 @@ TEST_CASE("Can decode zero word")
 TEST_CASE("Can decode non-zero word")
 {
     std::ifstream filename("../tests/test_matrix");
-    unsigned int* g;
+    uint64_t* g;
     g = readMatrix(filename, 6, 3);
     BeastDecoder dec(6, 3, filename);
     double* x = new double[6];
     unsigned int* u = new unsigned int[6];
     double delta = 0.5;
     x[0] = 1.5;
-    x[1] = 0.5;
-    x[2] = -1.7;
-    x[3] = -1.9;
-    x[4] = 2.0;
+    x[1] = -0.5;
+    x[2] = 1.7;
+    x[3] = 1.9;
+    x[4] = -2.0;
     x[5] = 1.0;
     std::string codeword = "000000";
 
@@ -115,15 +115,15 @@ TEST_CASE("Can decode non-zero word")
         switch(i)
         {
             case 0:
-            case 1:
-            case 4:
+            case 2:
+            case 3:
             case 5: {
                 INFO("Failed position: "<<i);
                 CHECK(u[i] == 1);
                 break;
             }
-            case 2:
-            case 3: {
+            case 1:
+            case 4: {
                 INFO("Failed position: "<<i);
                 CHECK(u[i] == 0);
                 break;
@@ -133,6 +133,7 @@ TEST_CASE("Can decode non-zero word")
         }
     }
 
+    delete[] g;
     delete[] x;
     delete[] u;
 }
@@ -147,23 +148,20 @@ void generate_vector(unsigned int size, unsigned int* vector)
     }
 }
 
-TEST_CASE("Can decode series of random words")
+void test_decoder(unsigned int n, unsigned int k, unsigned int tests, double stn, double delta, const char* filename)
 {
-    double stn = 100, delta = 0.5;
-    unsigned int n = 6, k=3;
     double dev = sqrt((1/(((1.0 * k) / n)*pow(10, stn / 10)))/2);
-    unsigned int tests = 1000;
-
     unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine gen(seed);
     std::normal_distribution<double> rv(0.0, (double) sqrt(dev));
 
-    std::ifstream input("../tests/test_matrix");
-    unsigned int* g = readMatrix(input, n, k);
+    std::ifstream input(filename);
+    uint64_t* g = readMatrix(input, n, k);
     BeastDecoder dec(n, k, input);
     double* x = new double[n];
     unsigned int* y = new unsigned int[n];
     unsigned int* u = new unsigned int[k];
+    int* ux = new int[n];
     double trueWeight, calcWeight, noise;
     unsigned int temp;
     bool flag;
@@ -182,8 +180,13 @@ TEST_CASE("Can decode series of random words")
             {
                 temp ^= ((g[i] & (u[j] << j))>>j);
             }
+            ux[i] = (temp ? 1 : 0);
+        }
+        INFO("Coded word: " << array_to_sstream<int>(n, ux).str());
+        for(unsigned int i=0; i<n; ++i)
+        {
             noise = rv(gen);
-            x[i] = (temp ? 1. : -1.) + noise;
+            x[i] = (ux[i] ? 1. : -1.) + noise;
             trueWeight += fabs(noise);
         }
         INFO("Coded word with noise: " << array_to_sstream<double>(n, x).str());
@@ -200,11 +203,21 @@ TEST_CASE("Can decode series of random words")
         INFO("Decoded word: " << array_to_sstream<unsigned int>(n, y).str());
         INFO("True weight: " << trueWeight);
         INFO("Calculated weight: " << calcWeight);
-        CHECK((flag || fabs(calcWeight - trueWeight) < EPSILON));
+        CHECK((flag || calcWeight < trueWeight || fabs(calcWeight - trueWeight) < EPSILON));
     }
 
     delete[] x;
     delete[] y;
     delete[] u;
     delete[] g;
+}
+
+TEST_CASE("Can decode series of random words with minimal noise")
+{
+    test_decoder(6, 3, 1000, 100, 0.5, "../tests/test_matrix");
+}
+
+TEST_CASE("Can decode series of random words with some noise")
+{
+    test_decoder(6, 3, 1000, 1, 0.5, "../tests/test_matrix");
 }

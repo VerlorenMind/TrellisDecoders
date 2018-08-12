@@ -1,4 +1,4 @@
-#define TESTING
+
 
 #include <algorithm>
 #include <iostream>
@@ -9,15 +9,15 @@
 #include "myutil.h"
 #include "BeastDecoder.h"
 
-unsigned int* readMatrix(std::ifstream& input, unsigned int n, unsigned int k)
+uint64_t* readMatrix(std::ifstream& input, unsigned int n, unsigned int k)
 {
     // Reading matrix from a file and storing it's columns as uints
-    unsigned int* matrix = new unsigned int[n];
+    uint64_t* matrix = new uint64_t[n];
     for(unsigned int i=0; i<n; ++i)
     {
         matrix[i] = 0;
     }
-    unsigned int bit;
+    uint64_t bit;
     for(unsigned int i=0; i<k; ++i)
     {
         for(unsigned int j=0; j<n; ++j)
@@ -29,7 +29,7 @@ unsigned int* readMatrix(std::ifstream& input, unsigned int n, unsigned int k)
     return matrix;
 }
 
-void minspan_form(unsigned int n, unsigned int k, unsigned int* a) {
+void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
     unsigned int num; // number of rows with 1s in i'th column
     unsigned int fixed_rows = 0; // number of rows on top of the matrix that were transformed
     unsigned int* rows = new unsigned int[k]; // rows with 1s in i'th column
@@ -51,13 +51,13 @@ void minspan_form(unsigned int n, unsigned int k, unsigned int* a) {
         }
         else
         {
-            // If the first row after fixed rows does not contain 1, swap it with the first row that does
+            // If the first row after fixed rows does not contain 1, sum it with the first row that does
             if(rows[0] != fixed_rows)
             {
                 unsigned int temp;
                 for(unsigned int l=0; l<n; ++l)
                 {
-                    // Swapping bits
+                    // a[l] ^= (a[l] & (1 << rows[0])) >> (rows[0] - fixed_rows);
                     temp = a[l] & (1 << rows[0]);
                     a[l] ^= (((a[l] & (1 << i)) << (rows[0]-i)) ^ (a[l] & (1 << rows[0])));
                     a[l] ^= (temp >> (rows[0]-i)) ^ (a[l] & (1<<i));
@@ -109,7 +109,7 @@ void minspan_form(unsigned int n, unsigned int k, unsigned int* a) {
     delete [] rows;
 }
 
-unsigned int* find_ranges(unsigned int n, unsigned int k, unsigned int* a)
+unsigned int* find_ranges(unsigned int n, unsigned int k, uint64_t* a)
 {
     // Finding active ranges for each row (range between the first non-zero element and the last one)
     unsigned int* ranges = new unsigned int[2*k];
@@ -162,21 +162,21 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     temp.number = 0;
     temp.layer = 0;
     temp.metric = 0;
-    temp.path.resize(0);
+    temp.path = 0;
     temp.path0 = true;
     temp.path1 = true;
     fwdTree.push_back(temp);
     temp.number = 0;
     temp.layer = n;
     temp.metric = 0;
-    temp.path.resize(0);
+    temp.path = 0;
     temp.path0 = true;
     temp.path1 = true;
     bkwTree.push_back(temp);
     unsigned int layerMask; // a mask that denotes zero bit-positions on a layer
     double metricBound = 0; // target metric bound
     double min_metric = -1;
-    std::vector<unsigned int> min_candidate;
+    uint64_t min_candidate;
     while(min_metric == -1) {
         metricBound += delta;
         // Growing forward tree
@@ -197,7 +197,6 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.layer = iter->layer + 1;
                 temp.metric = iter->metric + metric(x[iter->layer], -1);
                 temp.path = iter->path;
-                temp.path.push_back(0);
                 // Inserting new node in sorted list
                 for (auto iterSort = iter;; ++iterSort) {
                     if (iterSort == fwdTree.end() ||
@@ -218,7 +217,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.layer = iter->layer + 1;
                 temp.metric = iter->metric + metric(x[iter->layer], 1);
                 temp.path = iter->path;
-                temp.path.push_back(1);
+                temp.path ^= (1 << iter->layer);
                 for (auto iterSort = iter;; ++iterSort) {
                     if (iterSort == fwdTree.end() ||
                         (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
@@ -247,7 +246,6 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.layer = iter->layer - 1;
                 temp.metric = iter->metric + metric(x[iter->layer-1], -1);
                 temp.path = iter->path;
-                temp.path.insert(temp.path.begin(), 0);
                 for (auto iterSort = bkwTree.begin();; ++iterSort) {
                     if (iterSort == bkwTree.end() ||
                         (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
@@ -266,7 +264,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.layer = iter->layer - 1;
                 temp.metric = iter->metric + metric(x[iter->layer-1], 1);
                 temp.path = iter->path;
-                temp.path.insert(temp.path.begin(), 1);
+                temp.path ^= (1 << (iter->layer-1));
                 for (auto iterSort = bkwTree.begin();; ++iterSort) {
                     if (iterSort == bkwTree.end() ||
                         (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
@@ -290,8 +288,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 if(min_metric == -1 || tempMetric < min_metric) {
                     // Found a match, storing it
                     min_metric = tempMetric;
-                    min_candidate.insert(min_candidate.end(), fwdIter->path.begin(), fwdIter->path.end());
-                    min_candidate.insert(min_candidate.end(), bkwIter->path.begin(), bkwIter->path.end());
+                    min_candidate = fwdIter->path + bkwIter->path;
                 }
                 ++fwdIter;
                 ++bkwIter;
@@ -310,7 +307,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     // Outputting the result
     for(unsigned int i=0; i<n; ++i)
     {
-        u[i] = min_candidate[i];
+        u[i] = (min_candidate & (1 << i)) ? 1 : 0;
     }
     return min_metric;
 }
