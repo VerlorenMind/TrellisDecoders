@@ -7,10 +7,23 @@
 struct Node {
     uint64_t number;
     unsigned int layer;
-    double metric;
-    uint64_t path;
-    bool path0;
-    bool path1;
+    mutable double metric;
+    mutable uint64_t path;
+    mutable bool path0;
+    mutable bool path1;
+};
+
+class NodeCompare {
+public:
+    bool operator()(const Node& lhs, const Node& rhs)
+    {
+        if(lhs.layer != rhs.layer) {
+            return lhs.layer < rhs.layer;
+        }
+        else {
+            return lhs.number < rhs.number;
+        }
+    }
 };
 
 class BeastDecoder {

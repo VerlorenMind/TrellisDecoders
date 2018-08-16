@@ -93,49 +93,40 @@ TEST_CASE("Can decode non-zero word")
     g = readMatrix(filename, 6, 3);
     BeastDecoder dec(6, 3, filename);
     double* x = new double[6];
+    unsigned int* y = new unsigned int[6];
     unsigned int* u = new unsigned int[6];
     double delta = 0.5;
-    x[0] = 1.5;
-    x[1] = -0.5;
-    x[2] = 1.7;
-    x[3] = 1.9;
-    x[4] = -2.0;
-    x[5] = 1.0;
+    u[0] = 1;
+    u[1] = 1;
+    u[2] = 0;
+    u[3] = 1;
+    u[4] = 0;
+    u[5] = 0;
+    x[0] = -0.86557;
+    x[1] = 0.594426;
+    x[2] = -0.662219;
+    x[3] = 1.90052;
+    x[4] = -2.86581;
+    x[5] = -2.48391;
+    // true weight is 6.85916, calculated 8.31688
     std::string codeword = "000000";
 
-    dec.decode(x, u, delta);
+    dec.decode(x, y, delta);
 
     for(unsigned int j=0; j<6; ++j)
     {
-        codeword[j] = u[j] ? '1' : '0';
+        codeword[j] = y[j] ? '1' : '0';
     }
     INFO("Decoded word: "<<codeword);
     for(unsigned int i=0; i<6; ++i)
     {
-        switch(i)
-        {
-            case 0:
-            case 2:
-            case 3:
-            case 5: {
-                INFO("Failed position: "<<i);
-                CHECK(u[i] == 1);
-                break;
-            }
-            case 1:
-            case 4: {
-                INFO("Failed position: "<<i);
-                CHECK(u[i] == 0);
-                break;
-            }
-            default:
-                break;
-        }
+        CHECK(y[i] == u[i]);
     }
 
     delete[] g;
     delete[] x;
     delete[] u;
+    delete[] y;
 }
 
 void generate_vector(unsigned int size, unsigned int* vector)

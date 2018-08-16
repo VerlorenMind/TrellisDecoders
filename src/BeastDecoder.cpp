@@ -1,11 +1,10 @@
-
-
 #include <algorithm>
 #include <iostream>
 #include <vector>
 #include <stack>
 #include <list>
 #include <cmath>
+#include <set>
 #include "myutil.h"
 #include "BeastDecoder.h"
 
@@ -156,29 +155,28 @@ inline double metric(double x, int y)
 
 double BeastDecoder::decode(double *x, unsigned int *u, double delta)
 {
-    std::list<Node> fwdTree, bkwTree; // forward and backward trees TODO: look up std::set
+    std::set<Node, NodeCompare> fwdTree, bkwTree; // forward and backward trees
     // Initializing starting nodes
-    Node temp;
+    Node temp{};
     temp.number = 0;
     temp.layer = 0;
     temp.metric = 0;
     temp.path = 0;
     temp.path0 = true;
     temp.path1 = true;
-    fwdTree.push_back(temp);
+    fwdTree.insert(temp);
     temp.number = 0;
     temp.layer = n;
     temp.metric = 0;
     temp.path = 0;
     temp.path0 = true;
     temp.path1 = true;
-    bkwTree.push_back(temp);
+    bkwTree.insert(temp);
     unsigned int layerMask; // a mask that denotes zero bit-positions on a layer
-    double metricBound = 0; // target metric bound
+    double metricBound = delta; // target metric bound
     double min_metric = -1;
-    uint64_t min_candidate;
+    uint64_t min_candidate = 0;
     while(min_metric == -1) {
-        metricBound += delta;
         // Growing forward tree
         for (auto iter = fwdTree.begin(); iter != fwdTree.end(); ++iter) {
             // Getting layerMask for current layer
@@ -188,7 +186,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     layerMask ^= (1 << i);
                 }
             }
-            // If transition with input 0 is possible, add node to the list
+            // If transition with input 0 is possible, add node to the tree
             if (iter->layer < n &&
                     iter->path0 &&
                     !(iter->number & layerMask) &&
@@ -197,13 +195,19 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.layer = iter->layer + 1;
                 temp.metric = iter->metric + metric(x[iter->layer], -1);
                 temp.path = iter->path;
-                // Inserting new node in sorted list
-                for (auto iterSort = iter;; ++iterSort) {
-                    if (iterSort == fwdTree.end() ||
-                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
-                        (iterSort->layer > temp.layer)) {
-                        fwdTree.insert(iterSort, temp);
-                        break;
+                temp.path0 = true;
+                temp.path1 = true;
+                auto tempfind = fwdTree.find(temp);
+                if(tempfind == fwdTree.end())
+                {
+                    fwdTree.insert(temp);
+                }
+                else
+                {
+                    if(tempfind->metric > temp.metric)
+                    {
+                        tempfind->metric = temp.metric;
+                        tempfind->path = temp.path;
                     }
                 }
                 iter->path0 = false;
@@ -218,12 +222,19 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.metric = iter->metric + metric(x[iter->layer], 1);
                 temp.path = iter->path;
                 temp.path ^= (1 << iter->layer);
-                for (auto iterSort = iter;; ++iterSort) {
-                    if (iterSort == fwdTree.end() ||
-                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
-                        (iterSort->layer > temp.layer)) {
-                        fwdTree.insert(iterSort, temp);
-                        break;
+                temp.path0 = true;
+                temp.path1 = true;
+                auto tempfind = fwdTree.find(temp);
+                if(tempfind == fwdTree.end())
+                {
+                    fwdTree.insert(temp);
+                }
+                else
+                {
+                    if(tempfind->metric > temp.metric)
+                    {
+                        tempfind->metric = temp.metric;
+                        tempfind->path = temp.path;
                     }
                 }
                 iter->path1 = false;
@@ -246,12 +257,19 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.layer = iter->layer - 1;
                 temp.metric = iter->metric + metric(x[iter->layer-1], -1);
                 temp.path = iter->path;
-                for (auto iterSort = bkwTree.begin();; ++iterSort) {
-                    if (iterSort == bkwTree.end() ||
-                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
-                        (iterSort->layer > temp.layer)) {
-                        bkwTree.insert(iterSort, temp);
-                        break;
+                temp.path0 = true;
+                temp.path1 = true;
+                auto tempfind = bkwTree.find(temp);
+                if(tempfind == bkwTree.end())
+                {
+                    bkwTree.insert(temp);
+                }
+                else
+                {
+                    if(tempfind->metric > temp.metric)
+                    {
+                        tempfind->metric = temp.metric;
+                        tempfind->path = temp.path;
                     }
                 }
                 iter->path0 = false;
@@ -265,12 +283,19 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.metric = iter->metric + metric(x[iter->layer-1], 1);
                 temp.path = iter->path;
                 temp.path ^= (1 << (iter->layer-1));
-                for (auto iterSort = bkwTree.begin();; ++iterSort) {
-                    if (iterSort == bkwTree.end() ||
-                        (iterSort->layer == temp.layer && iterSort->number > temp.number) ||
-                        (iterSort->layer > temp.layer)) {
-                        bkwTree.insert(iterSort, temp);
-                        break;
+                temp.path0 = true;
+                temp.path1 = true;
+                auto tempfind = bkwTree.find(temp);
+                if(tempfind == bkwTree.end())
+                {
+                    bkwTree.insert(temp);
+                }
+                else
+                {
+                    if(tempfind->metric > temp.metric)
+                    {
+                        tempfind->metric = temp.metric;
+                        tempfind->path = temp.path;
                     }
                 }
                 iter->path1 = false;
@@ -280,9 +305,10 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
         auto fwdIter = fwdTree.begin();
         auto bkwIter = bkwTree.begin();
         double tempMetric;
+        NodeCompare nodecmpr;
         while(fwdIter != fwdTree.end() && bkwIter != bkwTree.end())
         {
-            if(fwdIter->layer == bkwIter->layer && fwdIter->number == bkwIter->number)
+            if(!nodecmpr(*fwdIter, *bkwIter) && !nodecmpr(*bkwIter, *fwdIter))
             {
                 tempMetric = fwdIter->metric + bkwIter->metric;
                 if(min_metric == -1 || tempMetric < min_metric) {
@@ -293,8 +319,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 ++fwdIter;
                 ++bkwIter;
             }
-            else if((fwdIter->layer < bkwIter->layer) ||
-                    (fwdIter->layer == bkwIter->layer && fwdIter->number < bkwIter->number))
+            else if(nodecmpr(*fwdIter, *bkwIter))
             {
                 ++fwdIter;
             }
@@ -302,6 +327,15 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             {
                 ++bkwIter;
             }
+        }
+        if(min_metric > 2*metricBound) // found metric can be higher than the actual minimum, double-checking
+        {
+            metricBound = min_metric / 2;
+            min_metric = -1;
+        }
+        else
+        {
+            metricBound += delta;
         }
     }
     // Outputting the result
