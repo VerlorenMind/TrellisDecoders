@@ -32,6 +32,7 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
     unsigned int num; // number of rows with 1s in i'th column
     unsigned int fixed_rows = 0; // number of rows on top of the matrix that were transformed
     unsigned int* rows = new unsigned int[k]; // rows with 1s in i'th column
+    uint64_t temp;
     // Left side
     for(unsigned int i=0; i<k; ++i)
     {
@@ -53,7 +54,6 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
             // If the first row after fixed rows does not contain 1, sum it with the first row that does
             if(rows[0] != fixed_rows)
             {
-                unsigned int temp;
                 for(unsigned int l=0; l<n; ++l)
                 {
                     // a[l] ^= (a[l] & (1 << rows[0])) >> (rows[0] - fixed_rows);
@@ -116,14 +116,14 @@ unsigned int* find_ranges(unsigned int n, unsigned int k, uint64_t* a)
     {
         for(unsigned int j=0; j<n; ++j)
         {
-            if(a[j] & (1<<i))
+            if(a[j] & (uint64_t(1)<<i))
             {
                 ranges[2*i] = j;
                 break;
             }
         }
-        for(unsigned int j=n-1; j>=0; --j) {
-            if (a[j] & (1<<i)) {
+        for(int j=n-1; j>=0; --j) {
+            if (a[j] & (uint64_t(1)<<i)) {
                 ranges[2*i+1] = j;
                 break;
             }
@@ -134,7 +134,7 @@ unsigned int* find_ranges(unsigned int n, unsigned int k, uint64_t* a)
 
 BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename)
 {
-    // Transforming matrix to minspan form and finding ative ranges of it's rows
+    // Transforming matrix to minspan form and finding active ranges of it's rows
     this->n = n;
     this->k = k;
     h = readMatrix(filename, n, k);
@@ -197,13 +197,16 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 temp.path = iter->path;
                 temp.path0 = true;
                 temp.path1 = true;
+                // Check if this node is already in the tree
                 auto tempfind = fwdTree.find(temp);
+                // If it isn't, add it
                 if(tempfind == fwdTree.end())
                 {
                     fwdTree.insert(temp);
                 }
                 else
                 {
+                    // If it is, try to minimize it's metric
                     if(tempfind->metric > temp.metric)
                     {
                         tempfind->metric = temp.metric;

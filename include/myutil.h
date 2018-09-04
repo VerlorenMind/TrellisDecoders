@@ -3,6 +3,7 @@
 
 #include "BeastDecoder.h"
 #include <sstream>
+#include <iostream>
 
 template<class T>
 void print_matrix(unsigned int n, unsigned int k, T** m)

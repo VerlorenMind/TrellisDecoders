@@ -11,7 +11,9 @@ const double EPSILON = 0.0000001;
 TEST_CASE("Can read matrix from file")
 {
     std::ifstream filename("../tests/test_matrix");
-    uint64_t* matrix = readMatrix(filename, 6, 3);
+    unsigned int n, k;
+    filename >> n >> k;
+    uint64_t* matrix = readMatrix(filename, n, k);
 
     REQUIRE(matrix[0] == 0b111);
     REQUIRE(matrix[1] == 0b100);
@@ -26,6 +28,8 @@ TEST_CASE("Can read matrix from file")
 TEST_CASE("Minspan form is achieved")
 {
     std::ifstream filename("../tests/test_matrix");
+    unsigned int n, k;
+    filename >> n >> k;
     uint64_t* matrix = readMatrix(filename, 6, 3);
 
     minspan_form(6, 3, matrix);
@@ -43,9 +47,11 @@ TEST_CASE("Minspan form is achieved")
 TEST_CASE("Ranges can be found")
 {
     std::ifstream filename("../tests/test_matrix");
-    uint64_t* matrix = readMatrix(filename, 6, 3);
+    unsigned int n, k;
+    filename >> n >> k;
+    uint64_t* matrix = readMatrix(filename, n, k);
 
-    unsigned int* ranges = find_ranges(6, 3, matrix);
+    unsigned int* ranges = find_ranges(n, k, matrix);
 
     REQUIRE(ranges[0] == 0);
     REQUIRE(ranges[1] == 5);
@@ -90,8 +96,10 @@ TEST_CASE("Can decode non-zero word")
 {
     std::ifstream filename("../tests/test_matrix");
     uint64_t* g;
-    g = readMatrix(filename, 6, 3);
-    BeastDecoder dec(6, 3, filename);
+    unsigned int n, k;
+    filename >> n >> k;
+    g = readMatrix(filename, n, k);
+    BeastDecoder dec(n, k, filename);
     double* x = new double[6];
     unsigned int* y = new unsigned int[6];
     unsigned int* u = new unsigned int[6];
@@ -139,16 +147,21 @@ void generate_vector(unsigned int size, unsigned int* vector)
     }
 }
 
-void test_decoder(unsigned int n, unsigned int k, unsigned int tests, double stn, double delta, const char* filename)
+void test_decoder(unsigned int tests, double stn, double delta, const char* filename)
 {
+    std::ifstream input(filename);
+    unsigned int n, k;
+    input >> n >> k;
+    WARN("Test BCH("<<n<<", "<<k<<") starts");
+    auto overallStart = std::chrono::high_resolution_clock::now();
+
     double dev = sqrt((1/(((1.0 * k) / n)*pow(10, stn / 10)))/2);
     unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine gen(seed);
-    std::normal_distribution<double> rv(0.0, (double) sqrt(dev));
+    std::normal_distribution<double> rv(0.0, sqrt(dev));
 
-    std::ifstream input(filename);
     uint64_t* g = readMatrix(input, n, k);
-    BeastDecoder dec(n, k, input);
+    BeastDecoder dec(n, n-k, input);
     double* x = new double[n];
     unsigned int* y = new unsigned int[n];
     unsigned int* u = new unsigned int[k];
@@ -185,7 +198,7 @@ void test_decoder(unsigned int n, unsigned int k, unsigned int tests, double stn
         flag = true;
         for(unsigned int i=0; i<n; ++i)
         {
-            if(y[i] != u[i])
+            if(y[i] != ux[i])
             {
                 flag = false;
                 break;
@@ -195,20 +208,53 @@ void test_decoder(unsigned int n, unsigned int k, unsigned int tests, double stn
         INFO("True weight: " << trueWeight);
         INFO("Calculated weight: " << calcWeight);
         CHECK((flag || calcWeight < trueWeight || fabs(calcWeight - trueWeight) < EPSILON));
+        if(!((test+1) % 250))
+        {
+            auto stop = std::chrono::high_resolution_clock::now();
+            WARN("Time to decode "<< test+1<< " words: "<< ((std::chrono::duration<double, std::milli>)(stop - overallStart)).count() << "ms");
+        }
     }
 
     delete[] x;
     delete[] y;
     delete[] u;
     delete[] g;
+    delete[] ux;
+    auto stop = std::chrono::high_resolution_clock::now();
+    WARN("Overall time: "<< ((std::chrono::duration<double, std::milli>)(stop - overallStart)).count()<<"ms");
 }
 
 TEST_CASE("Can decode series of random words with minimal noise")
 {
-    test_decoder(6, 3, 1000, 100, 0.5, "../tests/test_matrix");
+    test_decoder(1000, 100, 0.5, "../tests/test_matrix");
 }
 
 TEST_CASE("Can decode series of random words with some noise")
 {
-    test_decoder(6, 3, 1000, 1, 0.5, "../tests/test_matrix");
+    test_decoder(1000, 1, 0.5, "../tests/test_matrix");
 }
+
+TEST_CASE("Can decode BCH(31, 16, 7)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-31-16-7");
+}
+
+TEST_CASE("Can decode BCH(31, 21, 5)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-31-21-5");
+}
+
+/*TEST_CASE("Can decode BCH(63, 16, 23)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23");
+}
+
+TEST_CASE("Can decode BCH(63, 30, 13)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13");
+}
+
+TEST_CASE("Can decode BCH(63, 39, 9)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9");
+}*/
