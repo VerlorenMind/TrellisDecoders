@@ -38,7 +38,7 @@ int main (int argc, char* argv[]){
         auto overallStart = std::chrono::high_resolution_clock::now();
         unsigned int maxErrors = (unsigned int) strtol(argv[1], nullptr, 10),
             maxTotal = (unsigned int) strtol(argv[2], nullptr, 10),
-            errorsCount, totalCount;
+            errorsCount = 0, totalCount = 0;
         double stn = strtod(argv[3], nullptr), delta = strtod(argv[4], nullptr);
         std::ifstream input(argv[5]);
         unsigned int n, k;
@@ -88,7 +88,7 @@ int main (int argc, char* argv[]){
         delete[] u;
         delete[] g;
         delete[] ux;
-        std::cout<<errorsCount/totalCount<<std::endl;
+        std::cout<<double(errorsCount)/totalCount<<std::endl;
         auto stop = std::chrono::high_resolution_clock::now();
         std::cout<<"Execution time: "<<((std::chrono::duration<double, std::milli>)(stop - overallStart)).count()<<"ms\n";
     }
