@@ -178,15 +178,15 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     uint64_t min_candidate = 0;
     while(min_metric == -1) {
         // Growing forward tree
-        for(unsigned int layer = 0; layer <= n; ++layer) {
-            for (auto iter = fwdTree[layer].begin(); iter != fwdTree[layer].end(); ++iter) {
-                // Getting layerMask for current layer
-                layerMask = 0;
-                for (unsigned int i = 0; i < k; ++i) {
-                    if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
-                        layerMask ^= (1 << i);
-                    }
+        for(unsigned int layer = 0; layer < n; ++layer) {
+            // Getting layerMask for current layer
+            layerMask = 0;
+            for (unsigned int i = 0; i < k; ++i) {
+                if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
+                    layerMask ^= (1 << i);
                 }
+            }
+            for (auto iter = fwdTree[layer].begin(); iter != fwdTree[layer].end(); ++iter) {
                 // If transition with input 0 is possible, add node to the tree
                 if (layer < n &&
                     iter->path0 &&
@@ -236,14 +236,14 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             }
         }
         // Growing backward tree
-        for(int layer = n; layer >= 0; --layer) {
-            for (auto iter = bkwTree[layer].begin(); iter != bkwTree[layer].end(); ++iter) {
-                layerMask = 0;
-                for (unsigned int i = 0; i < k; ++i) {
-                    if ((layer - 1) <= ranges[2 * i] || (layer - 1) > ranges[2 * i + 1]) {
-                        layerMask ^= (1 << i);
-                    }
+        for(int layer = n; layer > 0; --layer) {
+            layerMask = 0;
+            for (unsigned int i = 0; i < k; ++i) {
+                if ((layer - 1) <= ranges[2 * i] || (layer - 1) > ranges[2 * i + 1]) {
+                    layerMask ^= (1 << i);
                 }
+            }
+            for (auto iter = bkwTree[layer].begin(); iter != bkwTree[layer].end(); ++iter) {
                 // The difference between forward tree is in third condition
                 if (layer > 0 &&
                     iter->path0 &&

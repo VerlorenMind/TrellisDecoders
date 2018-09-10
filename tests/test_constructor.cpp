@@ -154,7 +154,8 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     unsigned int n, k;
     input >> n >> k;
     WARN("Test BCH("<<n<<", "<<k<<") starts");
-    auto overallStart = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
+    double overall = 0;
 
     double dev = sqrt((1/(((1.0 * k) / n)*pow(10, stn / 10)))/2);
     unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
@@ -195,7 +196,12 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
             trueWeight += fabs(noise);
         }
         INFO("Coded word with noise: " << array_to_sstream<double>(n, x).str());
+        start = std::chrono::high_resolution_clock::now();
+
         calcWeight = dec.decode(x, y, delta);
+
+        stop = std::chrono::high_resolution_clock::now();
+        overall += std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
         flag = true;
         for(unsigned int i=0; i<n; ++i)
         {
@@ -212,7 +218,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         if(!((test+1) % 250))
         {
             auto stop = std::chrono::high_resolution_clock::now();
-            WARN("Time to decode "<< test+1<< " words: "<< ((std::chrono::duration<double, std::milli>)(stop - overallStart)).count() << "ms");
+            WARN("Time to decode "<< test+1<< " words: "<< overall<< "ms");
         }
     }
 
@@ -221,8 +227,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     delete[] u;
     delete[] g;
     delete[] ux;
-    auto stop = std::chrono::high_resolution_clock::now();
-    WARN("Overall time: "<< ((std::chrono::duration<double, std::milli>)(stop - overallStart)).count()<<"ms");
+    WARN("Overall time: "<< overall <<"ms");
 }
 
 TEST_CASE("Can decode series of random words with minimal noise")
