@@ -155,180 +155,160 @@ inline double metric(double x, int y)
 
 double BeastDecoder::decode(double *x, unsigned int *u, double delta)
 {
-    std::set<Node, NodeCompare> fwdTree, bkwTree; // forward and backward trees
+    std::set<Node, NodeCompare> *fwdTree, *bkwTree; // forward and backward trees
     // Initializing starting nodes
+    fwdTree = new std::set<Node, NodeCompare>[n+1];
+    bkwTree = new std::set<Node, NodeCompare>[n+1];
     Node temp{};
     temp.number = 0;
-    temp.layer = 0;
     temp.metric = 0;
     temp.path = 0;
     temp.path0 = true;
     temp.path1 = true;
-    fwdTree.insert(temp);
+    fwdTree[0].insert(temp);
     temp.number = 0;
-    temp.layer = n;
     temp.metric = 0;
     temp.path = 0;
     temp.path0 = true;
     temp.path1 = true;
-    bkwTree.insert(temp);
+    bkwTree[n].insert(temp);
     unsigned int layerMask; // a mask that denotes zero bit-positions on a layer
     double metricBound = delta; // target metric bound
     double min_metric = -1;
     uint64_t min_candidate = 0;
     while(min_metric == -1) {
         // Growing forward tree
-        for (auto iter = fwdTree.begin(); iter != fwdTree.end(); ++iter) {
-            // Getting layerMask for current layer
-            layerMask = 0;
-            for (unsigned int i = 0; i < k; ++i) {
-                if (iter->layer < ranges[2 * i] || iter->layer >= ranges[2 * i + 1]) {
-                    layerMask ^= (1 << i);
+        for(unsigned int layer = 0; layer <= n; ++layer) {
+            for (auto iter = fwdTree[layer].begin(); iter != fwdTree[layer].end(); ++iter) {
+                // Getting layerMask for current layer
+                layerMask = 0;
+                for (unsigned int i = 0; i < k; ++i) {
+                    if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
+                        layerMask ^= (1 << i);
+                    }
                 }
-            }
-            // If transition with input 0 is possible, add node to the tree
-            if (iter->layer < n &&
+                // If transition with input 0 is possible, add node to the tree
+                if (layer < n &&
                     iter->path0 &&
                     !(iter->number & layerMask) &&
                     (iter->metric < metricBound)) {
-                temp.number = iter->number;
-                temp.layer = iter->layer + 1;
-                temp.metric = iter->metric + metric(x[iter->layer], -1);
-                temp.path = iter->path;
-                temp.path0 = true;
-                temp.path1 = true;
-                // Check if this node is already in the tree
-                auto tempfind = fwdTree.find(temp);
-                // If it isn't, add it
-                if(tempfind == fwdTree.end())
-                {
-                    fwdTree.insert(temp);
-                }
-                else
-                {
-                    // If it is, try to minimize it's metric
-                    if(tempfind->metric > temp.metric)
-                    {
-                        tempfind->metric = temp.metric;
-                        tempfind->path = temp.path;
+                    temp.number = iter->number;
+                    temp.metric = iter->metric + metric(x[layer], -1);
+                    temp.path = iter->path;
+                    temp.path0 = true;
+                    temp.path1 = true;
+                    // Check if this node is already in the tree
+                    auto tempfind = fwdTree[layer+1].find(temp);
+                    // If it isn't, add it
+                    if (tempfind == fwdTree[layer+1].end()) {
+                        fwdTree[layer+1].insert(temp);
+                    } else {
+                        // If it is, try to minimize it's metric
+                        if (tempfind->metric > temp.metric) {
+                            tempfind->metric = temp.metric;
+                            tempfind->path = temp.path;
+                        }
                     }
+                    iter->path0 = false;
                 }
-                iter->path0 = false;
-            }
-            // Same for input 1
-            if (iter->layer < n &&
+                // Same for input 1
+                if (layer < n &&
                     iter->path1 &&
-                    !((iter->number ^ h[iter->layer]) & layerMask) &&
+                    !((iter->number ^ h[layer]) & layerMask) &&
                     iter->metric < metricBound) {
-                temp.number = iter->number ^ h[iter->layer];
-                temp.layer = iter->layer + 1;
-                temp.metric = iter->metric + metric(x[iter->layer], 1);
-                temp.path = iter->path;
-                temp.path ^= (1 << iter->layer);
-                temp.path0 = true;
-                temp.path1 = true;
-                auto tempfind = fwdTree.find(temp);
-                if(tempfind == fwdTree.end())
-                {
-                    fwdTree.insert(temp);
-                }
-                else
-                {
-                    if(tempfind->metric > temp.metric)
-                    {
-                        tempfind->metric = temp.metric;
-                        tempfind->path = temp.path;
+                    temp.number = iter->number ^ h[layer];
+                    temp.metric = iter->metric + metric(x[layer], 1);
+                    temp.path = iter->path;
+                    temp.path ^= (1 << layer);
+                    temp.path0 = true;
+                    temp.path1 = true;
+                    auto tempfind = fwdTree[layer+1].find(temp);
+                    if (tempfind == fwdTree[layer+1].end()) {
+                        fwdTree[layer+1].insert(temp);
+                    } else {
+                        if (tempfind->metric > temp.metric) {
+                            tempfind->metric = temp.metric;
+                            tempfind->path = temp.path;
+                        }
                     }
+                    iter->path1 = false;
                 }
-                iter->path1 = false;
             }
         }
         // Growing backward tree
-        for (auto iter = bkwTree.rbegin(); iter != bkwTree.rend(); ++iter) {
-            layerMask = 0;
-            for (unsigned int i = 0; i < k; ++i) {
-                if ((iter->layer-1) <= ranges[2 * i] || (iter->layer-1) > ranges[2 * i + 1]) {
-                    layerMask ^= (1 << i);
+        for(int layer = n; layer >= 0; --layer) {
+            for (auto iter = bkwTree[layer].begin(); iter != bkwTree[layer].end(); ++iter) {
+                layerMask = 0;
+                for (unsigned int i = 0; i < k; ++i) {
+                    if ((layer - 1) <= ranges[2 * i] || (layer - 1) > ranges[2 * i + 1]) {
+                        layerMask ^= (1 << i);
+                    }
                 }
-            }
-            // The difference between forward tree is in third condition
-            if (iter->layer > 0 &&
+                // The difference between forward tree is in third condition
+                if (layer > 0 &&
                     iter->path0 &&
                     !(iter->number & layerMask) &&
-                    (iter->metric + metric(x[iter->layer-1], -1)) < metricBound) {
-                temp.number = iter->number;
-                temp.layer = iter->layer - 1;
-                temp.metric = iter->metric + metric(x[iter->layer-1], -1);
-                temp.path = iter->path;
-                temp.path0 = true;
-                temp.path1 = true;
-                auto tempfind = bkwTree.find(temp);
-                if(tempfind == bkwTree.end())
-                {
-                    bkwTree.insert(temp);
-                }
-                else
-                {
-                    if(tempfind->metric > temp.metric)
-                    {
-                        tempfind->metric = temp.metric;
-                        tempfind->path = temp.path;
+                    (iter->metric + metric(x[layer - 1], -1)) < metricBound) {
+                    temp.number = iter->number;
+                    temp.metric = iter->metric + metric(x[layer - 1], -1);
+                    temp.path = iter->path;
+                    temp.path0 = true;
+                    temp.path1 = true;
+                    auto tempfind = bkwTree[layer-1].find(temp);
+                    if (tempfind == bkwTree[layer-1].end()) {
+                        bkwTree[layer-1].insert(temp);
+                    } else {
+                        if (tempfind->metric > temp.metric) {
+                            tempfind->metric = temp.metric;
+                            tempfind->path = temp.path;
+                        }
                     }
+                    iter->path0 = false;
                 }
-                iter->path0 = false;
-            }
-            if (iter->layer > 0 &&
+                if (layer > 0 &&
                     iter->path1 &&
-                    !((iter->number ^ h[iter->layer-1]) & layerMask) &&
-                (iter->metric + metric(x[iter->layer-1], 1)) < metricBound) {
-                temp.number = iter->number ^ h[iter->layer-1];
-                temp.layer = iter->layer - 1;
-                temp.metric = iter->metric + metric(x[iter->layer-1], 1);
-                temp.path = iter->path;
-                temp.path ^= (1 << (iter->layer-1));
-                temp.path0 = true;
-                temp.path1 = true;
-                auto tempfind = bkwTree.find(temp);
-                if(tempfind == bkwTree.end())
-                {
-                    bkwTree.insert(temp);
-                }
-                else
-                {
-                    if(tempfind->metric > temp.metric)
-                    {
-                        tempfind->metric = temp.metric;
-                        tempfind->path = temp.path;
+                    !((iter->number ^ h[layer - 1]) & layerMask) &&
+                    (iter->metric + metric(x[layer - 1], 1)) < metricBound) {
+                    temp.number = iter->number ^ h[layer - 1];
+                    temp.metric = iter->metric + metric(x[layer - 1], 1);
+                    temp.path = iter->path;
+                    temp.path ^= (1 << (layer - 1));
+                    temp.path0 = true;
+                    temp.path1 = true;
+                    auto tempfind = bkwTree[layer-1].find(temp);
+                    if (tempfind == bkwTree[layer-1].end()) {
+                        bkwTree[layer-1].insert(temp);
+                    } else {
+                        if (tempfind->metric > temp.metric) {
+                            tempfind->metric = temp.metric;
+                            tempfind->path = temp.path;
+                        }
                     }
+                    iter->path1 = false;
                 }
-                iter->path1 = false;
             }
         }
         // Looking for matches in sorted lists
-        auto fwdIter = fwdTree.begin();
-        auto bkwIter = bkwTree.begin();
-        double tempMetric;
-        NodeCompare nodecmpr;
-        while(fwdIter != fwdTree.end() && bkwIter != bkwTree.end())
-        {
-            if(!nodecmpr(*fwdIter, *bkwIter) && !nodecmpr(*bkwIter, *fwdIter))
-            {
-                tempMetric = fwdIter->metric + bkwIter->metric;
-                if(min_metric == -1 || tempMetric < min_metric) {
-                    // Found a match, storing it
-                    min_metric = tempMetric;
-                    min_candidate = fwdIter->path + bkwIter->path;
+        for(unsigned int layer = 0; layer <=n; ++layer) {
+            auto fwdIter = fwdTree[layer].begin();
+            auto bkwIter = bkwTree[layer].begin();
+            double tempMetric;
+            NodeCompare nodecmpr;
+            while (fwdIter != fwdTree[layer].end() && bkwIter != bkwTree[layer].end()) {
+                if (!nodecmpr(*fwdIter, *bkwIter) && !nodecmpr(*bkwIter, *fwdIter)) {
+                    tempMetric = fwdIter->metric + bkwIter->metric;
+                    if (min_metric == -1 || tempMetric < min_metric) {
+                        // Found a match, storing it
+                        min_metric = tempMetric;
+                        min_candidate = fwdIter->path + bkwIter->path;
+                    }
+                    ++fwdIter;
+                    ++bkwIter;
+                } else if (nodecmpr(*fwdIter, *bkwIter)) {
+                    ++fwdIter;
+                } else {
+                    ++bkwIter;
                 }
-                ++fwdIter;
-                ++bkwIter;
-            }
-            else if(nodecmpr(*fwdIter, *bkwIter))
-            {
-                ++fwdIter;
-            }
-            else
-            {
-                ++bkwIter;
             }
         }
         if(min_metric > 2*metricBound) // found metric can be higher than the actual minimum, double-checking
@@ -346,5 +326,8 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     {
         u[i] = (min_candidate & (1 << i)) ? 1 : 0;
     }
+
+    delete [] fwdTree;
+    delete [] bkwTree;
     return min_metric;
 }

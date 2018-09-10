@@ -6,7 +6,6 @@
 
 struct Node {
     uint64_t number;
-    unsigned int layer;
     mutable double metric;
     mutable uint64_t path;
     mutable bool path0;
@@ -17,12 +16,7 @@ class NodeCompare {
 public:
     bool operator()(const Node& lhs, const Node& rhs)
     {
-        if(lhs.layer != rhs.layer) {
-            return lhs.layer < rhs.layer;
-        }
-        else {
-            return lhs.number < rhs.number;
-        }
+        return lhs.number < rhs.number;
     }
 };
 
