@@ -153,9 +153,26 @@ inline double metric(double x, int y)
     return fabs(y - x);
 }
 
+void insertNode(Node& node, std::set<Node, NodeCompare>& tree)
+{
+    // Check if this node is already in the tree
+    auto tempfind = tree.find(node);
+    // If it isn't, add it
+    if (tempfind == tree.end()) {
+        tree.insert(node);
+    } else {
+        // If it is, try to minimize it's metric
+        if (tempfind->metric > node.metric) {
+            tempfind->metric = node.metric;
+            tempfind->path = node.path;
+        }
+    }
+}
+
 double BeastDecoder::decode(double *x, unsigned int *u, double delta)
 {
     std::set<Node, NodeCompare> *fwdTree, *bkwTree; // forward and backward trees
+    std::list<Node>* nodeBuffer = new std::list<Node>[n+1];
     // Initializing starting nodes
     fwdTree = new std::set<Node, NodeCompare>[n+1];
     bkwTree = new std::set<Node, NodeCompare>[n+1];
@@ -175,12 +192,23 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     unsigned int layerMask; // a mask that denotes zero bit-positions on a layer
     double metricBound = delta; // target metric bound
     double min_metric = -1;
+    bool layerComplete;
     uint64_t min_candidate = 0;
     while(min_metric == -1) {
         // Growing forward tree
         for(unsigned int layer = 0; layer < n; ++layer) {
+            // Adding eligible nodes from the buffer to the tree
+            /*for(auto iter = nodeBuffer[layer].begin(); iter != nodeBuffer[layer].end(); ++iter)
+            {
+                if(iter->metric < (metricBound+delta))
+                {
+                    insertNode(*iter, fwdTree[layer]);
+                    nodeBuffer[layer].erase(iter);
+                }
+            }*/
             // Getting layerMask for current layer
             layerMask = 0;
+            layerComplete = false;
             for (unsigned int i = 0; i < k; ++i) {
                 if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
                     layerMask ^= (1 << i);
@@ -197,18 +225,13 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     temp.path = iter->path;
                     temp.path0 = true;
                     temp.path1 = true;
-                    // Check if this node is already in the tree
-                    auto tempfind = fwdTree[layer+1].find(temp);
-                    // If it isn't, add it
-                    if (tempfind == fwdTree[layer+1].end()) {
-                        fwdTree[layer+1].insert(temp);
-                    } else {
-                        // If it is, try to minimize it's metric
-                        if (tempfind->metric > temp.metric) {
-                            tempfind->metric = temp.metric;
-                            tempfind->path = temp.path;
-                        }
+                    // If resulting metric is too big, store it in buffer until metric bound is bigger
+                    /*if(temp.metric > metricBound) {
+                        nodeBuffer[layer+1].push_back(temp);
                     }
+                    else {*/
+                        insertNode(temp, fwdTree[layer+1]);
+                    //}
                     iter->path0 = false;
                 }
                 // Same for input 1
@@ -222,17 +245,20 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     temp.path ^= (1 << layer);
                     temp.path0 = true;
                     temp.path1 = true;
-                    auto tempfind = fwdTree[layer+1].find(temp);
-                    if (tempfind == fwdTree[layer+1].end()) {
-                        fwdTree[layer+1].insert(temp);
-                    } else {
-                        if (tempfind->metric > temp.metric) {
-                            tempfind->metric = temp.metric;
-                            tempfind->path = temp.path;
-                        }
+                    /*if(temp.metric > metricBound) {
+                        nodeBuffer[layer+1].push_back(temp);
                     }
+                    else {*/
+                        insertNode(temp, fwdTree[layer+1]);
+                    //}
                     iter->path1 = false;
                 }
+                layerComplete = layerComplete || iter->path0 || iter->path1;
+            }
+            // If a tree layer does not have any nodes that can be continued, erase it
+            if(!layerComplete)
+            {
+                fwdTree[layer].clear();
             }
         }
         // Growing backward tree
@@ -254,15 +280,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     temp.path = iter->path;
                     temp.path0 = true;
                     temp.path1 = true;
-                    auto tempfind = bkwTree[layer-1].find(temp);
-                    if (tempfind == bkwTree[layer-1].end()) {
-                        bkwTree[layer-1].insert(temp);
-                    } else {
-                        if (tempfind->metric > temp.metric) {
-                            tempfind->metric = temp.metric;
-                            tempfind->path = temp.path;
-                        }
-                    }
+                    insertNode(temp, bkwTree[layer-1]);
                     iter->path0 = false;
                 }
                 if (layer > 0 &&
@@ -275,15 +293,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     temp.path ^= (1 << (layer - 1));
                     temp.path0 = true;
                     temp.path1 = true;
-                    auto tempfind = bkwTree[layer-1].find(temp);
-                    if (tempfind == bkwTree[layer-1].end()) {
-                        bkwTree[layer-1].insert(temp);
-                    } else {
-                        if (tempfind->metric > temp.metric) {
-                            tempfind->metric = temp.metric;
-                            tempfind->path = temp.path;
-                        }
-                    }
+                    insertNode(temp, bkwTree[layer-1]);
                     iter->path1 = false;
                 }
             }
@@ -329,5 +339,6 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
 
     delete [] fwdTree;
     delete [] bkwTree;
+    delete [] nodeBuffer;
     return min_metric;
 }

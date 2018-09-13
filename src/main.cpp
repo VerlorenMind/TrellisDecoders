@@ -88,8 +88,8 @@ int main (int argc, char* argv[]){
         delete[] u;
         delete[] g;
         delete[] ux;
-        std::cout<<double(errorsCount)/totalCount<<std::endl;
+        std::cout<<double(errorsCount)/totalCount;
         auto stop = std::chrono::high_resolution_clock::now();
-        std::cout<<"Execution time: "<<((std::chrono::duration<double, std::milli>)(stop - overallStart)).count()<<"ms\n";
+        std::cout<<","<<(((std::chrono::duration<double, std::milli>)(stop - overallStart)).count())/totalCount<<std::endl;
     }
 }
