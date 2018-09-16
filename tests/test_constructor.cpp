@@ -168,7 +168,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     unsigned int* y = new unsigned int[n];
     unsigned int* u = new unsigned int[k];
     int* ux = new int[n];
-    double trueWeight, calcWeight, noise;
+    double metric, calcWeight, noise;
     unsigned int temp;
     bool flag;
     std::string word;
@@ -176,7 +176,6 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
 
     for(unsigned int test = 0; test < tests; ++test)
     {
-        trueWeight = 0;
         generate_vector(k, u);
         INFO("Informational word: " << array_to_sstream<unsigned int>(k, u).str());
         for(unsigned int i=0; i<n; ++i)
@@ -193,9 +192,20 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         {
             noise = rv(gen);
             x[i] = (ux[i] ? 1. : -1.) + noise;
-            trueWeight += fabs(noise);
         }
         INFO("Coded word with noise: " << array_to_sstream<double>(n, x).str());
+        metric = 0;
+        for(unsigned int i=0; i<n; ++i)
+        {
+            if(x[i] < 0)
+            {
+                metric += (ux[i] == 0 ? 0 : fabs(x[i]));
+            }
+            else
+            {
+                metric += (ux[i] == 1 ? 0 : fabs(x[i]));
+            }
+        }
         start = std::chrono::high_resolution_clock::now();
 
         calcWeight = dec.decode(x, y, delta);
@@ -212,9 +222,9 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
             }
         }
         INFO("Decoded word: " << array_to_sstream<unsigned int>(n, y).str());
-        INFO("True weight: " << trueWeight);
+        INFO("True weight: " << metric);
         INFO("Calculated weight: " << calcWeight);
-        CHECK((flag || calcWeight < trueWeight || fabs(calcWeight - trueWeight) < EPSILON));
+        CHECK((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON));
         if(!((test+1) % 250))
         {
             auto stop = std::chrono::high_resolution_clock::now();
@@ -240,7 +250,7 @@ TEST_CASE("Can decode series of random words with some noise")
     test_decoder(1000, 1, 0.5, "../tests/test_matrix");
 }
 
-TEST_CASE("Can decode BCH(31, 16, 7)")
+/*TEST_CASE("Can decode BCH(31, 16, 7)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-31-16-7");
 }
@@ -250,7 +260,7 @@ TEST_CASE("Can decode BCH(31, 21, 5)")
     test_decoder(1000, 1, 0.5, "../data/bch-31-21-5");
 }
 
-/*TEST_CASE("Can decode BCH(63, 16, 23)")
+TEST_CASE("Can decode BCH(63, 16, 23)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-63-16-23");
 }
