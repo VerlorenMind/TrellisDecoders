@@ -18,7 +18,7 @@ void apply_noise(const int* x, double* y, double dev, unsigned int len)
 {
     unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine gen(seed);
-    std::normal_distribution<double> rv(0.0, sqrt(dev));
+    std::normal_distribution<double> rv(0.0, dev);
     for(unsigned int i=0; i<len; ++i)
     {
         y[i] = (x[i] ? 1.0 : -1.0) + rv(gen);
@@ -52,6 +52,7 @@ int main (int argc, char* argv[]){
         double *x = new double[n];
         unsigned int *y = new unsigned int[n];
         unsigned int *u = new unsigned int[k];
+        unsigned long op_add, op_mul, op_cmp, op_bit;
         int *ux = new int[n];
         double trueWeight, calcWeight, noise;
         unsigned int temp;
@@ -68,8 +69,24 @@ int main (int argc, char* argv[]){
                 }
                 ux[i] = (temp ? 1 : 0);
             }
+            uint64_t synd = 0;
+            for(unsigned int j=0; j<n-k; ++j)
+            {
+                for(unsigned int i=0; i<n; ++i)
+                {
+                    synd ^= (ux[i] ? dec.h[i] : 0);
+                }
+            }
+            if(synd != 0)
+            {
+                std::cout<<"Error!";
+            }
             apply_noise(ux, x, dev, n);
             calcWeight = dec.decode(x, y, delta);
+            op_add += dec.op_add;
+            op_bit += dec.op_bit;
+            op_cmp += dec.op_cmp;
+            op_mul += dec.op_mul;
             flag = true;
             for (unsigned int i = 0; i < n; ++i) {
                 if (y[i] != ux[i]) {
@@ -90,6 +107,7 @@ int main (int argc, char* argv[]){
         delete[] ux;
         std::cout<<double(errorsCount)/totalCount;
         auto stop = std::chrono::high_resolution_clock::now();
-        std::cout<<","<<(((std::chrono::duration<double, std::milli>)(stop - overallStart)).count())/totalCount<<std::endl;
+        std::cout<<","<<(((std::chrono::duration<double, std::milli>)(stop - overallStart)).count())/totalCount;
+        std::cout<<","<<double(op_add)/totalCount<<","<<double(op_cmp)/totalCount<<","<<double(op_mul)/totalCount<<","<<double(op_bit)/totalCount<<std::endl;
     }
 }

@@ -160,7 +160,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     double dev = sqrt((1/(((1.0 * k) / n)*pow(10, stn / 10)))/2);
     unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine gen(seed);
-    std::normal_distribution<double> rv(0.0, sqrt(dev));
+    std::normal_distribution<double> rv(0.0, dev);
 
     uint64_t* g = readMatrix(input, n, k);
     BeastDecoder dec(n, n-k, input);
@@ -168,7 +168,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     unsigned int* y = new unsigned int[n];
     unsigned int* u = new unsigned int[k];
     int* ux = new int[n];
-    double metric, calcWeight, noise;
+    double metric, calcWeight, noise, euclTrue, euclCalc;
     unsigned int temp;
     bool flag;
     std::string word;
@@ -183,7 +183,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
             temp = 0;
             for(unsigned int j=0; j<k; ++j)
             {
-                temp ^= ((g[i] & (u[j] << j))>>j);
+                temp ^= ((g[i] & (uint64_t(u[j]) << j))>>j);
             }
             ux[i] = (temp ? 1 : 0);
         }
@@ -206,6 +206,11 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
                 metric += (ux[i] == 1 ? 0 : fabs(x[i]));
             }
         }
+        euclTrue = 0;
+        for(unsigned int i=0; i<n; ++i)
+        {
+            euclTrue += ((ux[i] ? 1. : -1.) - x[i])*((ux[i] ? 1. : -1.) - x[i]);
+        }
         start = std::chrono::high_resolution_clock::now();
 
         calcWeight = dec.decode(x, y, delta);
@@ -221,13 +226,35 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
                 break;
             }
         }
+        uint64_t yint = 0;
+        for(unsigned int i=0; i<n; ++i)
+        {
+            yint += y[i] << i;
+        }
+        uint64_t synd = 0;
+        for(unsigned int j=0; j<n-k; ++j)
+        {
+            for(unsigned int i=0; i<n; ++i)
+            {
+                synd ^= (ux[i] ? dec.h[i] : 0);
+            }
+        }
+        euclCalc = 0;
+        for(unsigned int i=0; i<n; ++i)
+        {
+            euclCalc += ((y[i] ? 1. : -1.) - x[i])*((y[i] ? 1. : -1.) - x[i]);
+        }
         INFO("Decoded word: " << array_to_sstream<unsigned int>(n, y).str());
         INFO("True weight: " << metric);
         INFO("Calculated weight: " << calcWeight);
-        CHECK((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON));
+        INFO("Syndrome: " << synd);
+        INFO("True Euclidean metric: " << euclTrue);
+        INFO("Resulted Euclidean metric: " << euclCalc);
+        CHECK(((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
+        synd == 0 &&
+        (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON)));
         if(!((test+1) % 250))
         {
-            auto stop = std::chrono::high_resolution_clock::now();
             WARN("Time to decode "<< test+1<< " words: "<< overall<< "ms");
         }
     }
@@ -250,7 +277,7 @@ TEST_CASE("Can decode series of random words with some noise")
     test_decoder(1000, 1, 0.5, "../tests/test_matrix");
 }
 
-/*TEST_CASE("Can decode BCH(31, 16, 7)")
+TEST_CASE("Can decode BCH(31, 16, 7)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-31-16-7");
 }
@@ -260,7 +287,7 @@ TEST_CASE("Can decode BCH(31, 21, 5)")
     test_decoder(1000, 1, 0.5, "../data/bch-31-21-5");
 }
 
-TEST_CASE("Can decode BCH(63, 16, 23)")
+/*TEST_CASE("Can decode BCH(63, 16, 23)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-63-16-23");
 }
