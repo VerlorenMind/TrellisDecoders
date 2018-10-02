@@ -52,12 +52,11 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
         }
         else
         {
-            // If the first row after fixed rows does not contain 1, sum it with the first row that does
+            // If the first row after fixed rows does not contain 1, swap it with the first row that does
             if(rows[0] != fixed_rows)
             {
                 for(unsigned int l=0; l<n; ++l)
                 {
-                    // a[l] ^= (a[l] & (uint64_t(1) << rows[0])) >> (rows[0] - fixed_rows);
                     temp = a[l] & (uint64_t(1) << rows[0]);
                     a[l] ^= (((a[l] & (uint64_t(1) << i)) << (rows[0]-i)) ^ (a[l] & (uint64_t(1) << rows[0])));
                     a[l] ^= (temp >> (rows[0]-i)) ^ (a[l] & (uint64_t(1)<<i));
@@ -87,7 +86,7 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
         {
             if(a[i] & (uint64_t(1)<<j))
             {
-                rows[num++] = j;
+                rows[num++] = (unsigned int) j;
             }
         }
         if(num == 0)
@@ -125,7 +124,7 @@ unsigned int* find_ranges(unsigned int n, unsigned int k, uint64_t* a)
         }
         for(int j=n-1; j>=0; --j) {
             if (a[j] & (uint64_t(1)<<i)) {
-                ranges[2*i+1] = j;
+                ranges[2*i+1] = (unsigned int) j;
                 break;
             }
         }
@@ -145,6 +144,7 @@ BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filena
     ranges = find_ranges(n, k, h);
     fwdTree = new std::set<Node, NodeCompare>[n+1];
     bkwTree = new std::set<Node, NodeCompare>[n+1];
+    maxLayerSize = k < n-k ? (uint64_t(2)<<k) : (uint64_t(2)<<(n-k));
 }
 
 BeastDecoder::~BeastDecoder()
@@ -199,7 +199,6 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     }
     fwdTree[n].clear();
     bkwTree[n].clear();
-    //std::list<Node>* nodeBuffer = new std::list<Node>[n+1];
     // Initializing starting nodes
     Node temp{};
     temp.number = 0;
@@ -214,7 +213,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     temp.pathAvalaible[0] = true;
     temp.pathAvalaible[1] = true;
     bkwTree[n].insert(temp);
-    unsigned int layerMask; // a mask that denotes zero bit-positions on a layer
+    uint64_t layerMask; // a mask that denotes zero bit-positions on a layer
     double metricBound = delta; // target metric bound
     double min_metric = -1;
     bool layerComplete;
@@ -222,20 +221,9 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     while(min_metric == -1) {
         ++op_cmp;
         // Growing forward tree
-        std::cout<<"Target metric: "<<delta<<"\n"<<"\tForward tree:\n";
-
         for(unsigned int layer = 0; layer < n; ++layer) {
             ++op_cmp;
             ++op_add;
-            // Adding eligible nodes from the buffer to the tree
-            /*for(auto iter = nodeBuffer[layer].begin(); iter != nodeBuffer[layer].end(); ++iter)
-            {
-                if(iter->metric < (metricBound+delta))
-                {
-                    insertNode(*iter, fwdTree[layer]);
-                    nodeBuffer[layer].erase(iter);
-                }
-            }*/
             // Getting layerMask for current layer
             layerMask = 0;
             layerComplete = false;
@@ -245,7 +233,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 op_cmp += 2;
                 if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
                     op_bit += 2;
-                    layerMask ^= (1 << i);
+                    layerMask ^= (uint64_t(1) << i);
                 }
             }
             for (auto iter = fwdTree[layer].begin(); iter != fwdTree[layer].end(); ++iter) {
@@ -266,13 +254,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     temp.path = iter->path;
                     temp.pathAvalaible[0] = true;
                     temp.pathAvalaible[1] = true;
-                    // If resulting metric is too big, store it in buffer until metric bound is bigger
-                    //if(temp.metric > metricBound) {
-                    //    nodeBuffer[layer+1].push_back(temp);
-                    //}
-                    //else {
                     insertNode(temp, fwdTree[layer + 1]);
-                    //}
                     iter->pathAvalaible[0] = false;
                 }
                 op_bit += 2;
@@ -289,17 +271,11 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     temp.metric = iter->metric + metric(1, layer);
                     ++op_add;
                     temp.path = iter->path;
-                    temp.path ^= (1 << layer);
+                    temp.path ^= (uint64_t(1) << layer);
                     op_bit += 2;
                     temp.pathAvalaible[0] = true;
                     temp.pathAvalaible[1] = true;
-                    // If resulting metric is too big, store it in buffer until metric bound is bigger
-                    //if(temp.metric > metricBound) {
-                    //    nodeBuffer[layer+1].push_back(temp);
-                    //}
-                    //else {
                     insertNode(temp, fwdTree[layer + 1]);
-                    //}
                     iter->pathAvalaible[1] = false;
                 }
                 op_bit += 2;
@@ -311,10 +287,15 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             {
                 fwdTree[layer].clear();
             }
-            std::cout<<"\t\tLayer "<<layer<<" nodes: "<<fwdTree[layer].size()<<"\n";
+            if(bkwTree[layer].size() > maxLayerSize)
+            {
+                std::cerr<<"FwdTree layer " << layer << " overflow: "
+                         << fwdTree[layer].size()<<" nodes when "<<maxLayerSize<<" should be\n"
+                         << "For target metric: "<<metricBound<<std::endl;
+                return -1;
+            }
         }
         // Growing backward tree
-        std::cout<<"\tBackward tree:\n";
         for(int layer = n; layer > 0; --layer) {
             ++op_cmp;
             ++op_add;
@@ -327,22 +308,22 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 op_add += 3;
                 if ((layer - 1) <= ranges[2 * i] || (layer - 1) > ranges[2 * i + 1]) {
                     op_bit += 2;
-                    layerMask ^= (1 << i);
+                    layerMask ^= (uint64_t(1) << i);
                 }
             }
             for (auto iter = bkwTree[layer].begin(); iter != bkwTree[layer].end(); ++iter) {
                 ++op_cmp;
                 ++op_add;
-                // The difference between forward tree is in third condition
                 op_cmp += 2;
                 op_bit += 2;
                 op_add += 2;
+                // The difference between forward tree is in third condition
                 if (layer > 0 &&
                     iter->pathAvalaible[0] &&
                     !(iter->number & layerMask) &&
-                    (iter->metric + metric(0, layer-1)) < metricBound) {
+                    (iter->metric + metric(0, (unsigned int) layer-1)) < metricBound) {
                     temp.number = iter->number;
-                    temp.metric = iter->metric + metric(0, layer-1);
+                    temp.metric = iter->metric + metric(0, (unsigned int) layer-1);
                     op_add += 2;
                     temp.path = iter->path;
                     temp.pathAvalaible[0] = true;
@@ -357,13 +338,13 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 if (layer > 0 &&
                     iter->pathAvalaible[1] &&
                     !((iter->number ^ h[layer - 1]) & layerMask) &&
-                    (iter->metric + metric(1, layer-1)) < metricBound) {
+                    (iter->metric + metric(1, (unsigned int) layer-1)) < metricBound) {
                     temp.number = iter->number ^ h[layer - 1];
                     ++op_bit;
-                    temp.metric = iter->metric + metric(1, layer-1);
+                    temp.metric = iter->metric + metric(1, (unsigned int) layer-1);
                     ++op_add;
                     temp.path = iter->path;
-                    temp.path ^= (1 << (layer - 1));
+                    temp.path ^= (uint64_t(1) << (layer - 1));
                     op_bit += 2;
                     ++op_add;
                     temp.pathAvalaible[0] = true;
@@ -372,8 +353,15 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     iter->pathAvalaible[1] = false;
                 }
             }
-            std::cout<<"\t\tLayer "<<layer<<" nodes: "<<bkwTree[layer].size()<<"\n";
+            if(bkwTree[layer].size() > maxLayerSize)
+            {
+                std::cerr<<"BkwTree layer " << layer << " overflow: "
+                    << bkwTree[layer].size()<<" nodes when "<<maxLayerSize<<" should be\n"
+                    << "For target metric: "<<metricBound<<std::endl;
+                return -1;
+            }
         }
+
         // Looking for matches in sorted lists
         NodeCompare nodecmpr;
         for(unsigned int layer = 0; layer <=n; ++layer) {
@@ -382,6 +370,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             auto fwdIter = fwdTree[layer].begin();
             auto bkwIter = bkwTree[layer].begin();
             double tempMetric;
+            // Iterating on both trees, incrementing iterators with lesser nodes
             while (fwdIter != fwdTree[layer].end() && bkwIter != bkwTree[layer].end()) {
                 op_bit += 3;
                 if (!nodecmpr(*fwdIter, *bkwIter) && !nodecmpr(*bkwIter, *fwdIter)) {
@@ -406,7 +395,8 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
         }
         ++op_cmp;
         ++op_mul;
-        if(min_metric > 2*metricBound) // found metric can be higher than the actual minimum, double-checking
+        // Found metric can be higher than the actual minimum, double-checking
+        if(min_metric > 2*metricBound)
         {
             ++op_mul;
             metricBound = min_metric / 2;
@@ -424,9 +414,8 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     {
         ++op_cmp;
         op_bit += 2;
-        u[i] = (min_candidate & (1 << i)) ? 1 : 0;
+        u[i] = (min_candidate & (uint64_t(1) << i)) ? 1 : 0;
     }
 
-    //delete [] nodeBuffer;
     return min_metric;
 }

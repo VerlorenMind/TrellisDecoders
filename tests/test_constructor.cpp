@@ -297,7 +297,7 @@ TEST_CASE("Can decode BCH(63, 16, 23)")
     test_decoder(1000, 1, 0.5, "../data/bch-63-16-23");
 }
 
-/*TEST_CASE("Can decode BCH(63, 30, 13)")
+TEST_CASE("Can decode BCH(63, 30, 13)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-63-30-13");
 }
@@ -305,4 +305,4 @@ TEST_CASE("Can decode BCH(63, 16, 23)")
 TEST_CASE("Can decode BCH(63, 39, 9)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-63-39-9");
-}*/
+}

@@ -29,6 +29,7 @@ private:
     unsigned int* ranges;
     int *alpha;
     double *beta;
+    uint64_t maxLayerSize;
     std::set<Node, NodeCompare> *fwdTree, *bkwTree;
 
     void insertNode(Node& node, std::set<Node, NodeCompare>& tree);
