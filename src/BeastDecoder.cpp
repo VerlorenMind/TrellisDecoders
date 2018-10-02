@@ -41,7 +41,7 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
         // Finding all rows with 1s in i'th column
         for(unsigned int j=fixed_rows; j<k; ++j)
         {
-            if(a[i] & (1<<j))
+            if(a[i] & (uint64_t(1)<<j))
             {
                 rows[num++] = j;
             }
@@ -57,10 +57,10 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
             {
                 for(unsigned int l=0; l<n; ++l)
                 {
-                    // a[l] ^= (a[l] & (1 << rows[0])) >> (rows[0] - fixed_rows);
-                    temp = a[l] & (1 << rows[0]);
-                    a[l] ^= (((a[l] & (1 << i)) << (rows[0]-i)) ^ (a[l] & (1 << rows[0])));
-                    a[l] ^= (temp >> (rows[0]-i)) ^ (a[l] & (1<<i));
+                    // a[l] ^= (a[l] & (uint64_t(1) << rows[0])) >> (rows[0] - fixed_rows);
+                    temp = a[l] & (uint64_t(1) << rows[0]);
+                    a[l] ^= (((a[l] & (uint64_t(1) << i)) << (rows[0]-i)) ^ (a[l] & (uint64_t(1) << rows[0])));
+                    a[l] ^= (temp >> (rows[0]-i)) ^ (a[l] & (uint64_t(1)<<i));
                 }
                 rows[0] = i;
             }
@@ -72,7 +72,7 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
             {
                 for(unsigned int j=0; j<n; ++j)
                 {
-                    a[j] ^= (a[j] & (1<<rows[0]))<<(rows[l]-rows[0]);
+                    a[j] ^= (a[j] & (uint64_t(1)<<rows[0]))<<(rows[l]-rows[0]);
                 }
             }
         }
@@ -85,7 +85,7 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
         num = 0;
         for(int j=k-fixed_rows-1; j>=0; --j)
         {
-            if(a[i] & (1<<j))
+            if(a[i] & (uint64_t(1)<<j))
             {
                 rows[num++] = j;
             }
@@ -101,7 +101,7 @@ void minspan_form(unsigned int n, unsigned int k, uint64_t* a) {
             {
                 for(unsigned int j=0; j<n; ++j)
                 {
-                    a[j] ^= (a[j] & (1<<rows[0]))>>(rows[0]-rows[l]);
+                    a[j] ^= (a[j] & (uint64_t(1)<<rows[0]))>>(rows[0]-rows[l]);
                 }
             }
         }
@@ -163,46 +163,6 @@ inline double BeastDecoder::metric(int x, unsigned int pos)
     return (x == alpha[pos] ? 0 : beta[pos]);
 }
 
-/*void BeastDecoder::insertNodeFwd(unsigned int layer, const Node& iter, unsigned int layerMask, double metricBound,
-                                 int symbol) {
-    Node temp{};
-    if (layer < n &&
-        iter.pathAvalaible[symbol] &&
-        !((iter.number ^ (h[layer]*symbol)) & layerMask) &&
-        (iter.metric < metricBound)) {
-        temp.number = (iter.number ^ (h[layer]*symbol));
-        temp.metric = iter.metric + metric(symbol, layer);
-        temp.path = iter.path;
-        temp.pathAvalaible[0] = true;
-        temp.pathAvalaible[1] = true;
-        // If resulting metric is too big, store it in buffer until metric bound is bigger
-        //if(temp.metric > metricBound) {
-        //    nodeBuffer[layer+1].push_back(temp);
-        //}
-        //else {
-        insertNode(temp, fwdTree[layer + 1]);
-        //}
-        iter.pathAvalaible[symbol] = false;
-    }
-}
-
-void BeastDecoder::insertNodeBkw(unsigned int layer, const Node &iter, unsigned int layerMask, double metricBound,
-                                 int symbol) {
-    Node temp{};
-    if (layer > 0 &&
-        iter.pathAvalaible[symbol] &&
-        !((iter.number ^ (h[layer]*symbol)) & layerMask) &&
-        (iter.metric + metric(symbol, layer)) < metricBound) {
-        temp.number = (iter.number ^ (h[layer]*symbol));
-        temp.metric = iter.metric + metric(symbol, layer);
-        temp.path = iter.path;
-        temp.pathAvalaible[0] = true;
-        temp.pathAvalaible[1] = true;
-        insertNode(temp, bkwTree[layer-1]);
-        iter.pathAvalaible[symbol] = false;
-    }
-}*/
-
 void BeastDecoder::insertNode(Node& node, std::set<Node, NodeCompare>& tree)
 {
     // Check if this node is already in the tree
@@ -262,6 +222,8 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     while(min_metric == -1) {
         ++op_cmp;
         // Growing forward tree
+        std::cout<<"Target metric: "<<delta<<"\n"<<"\tForward tree:\n";
+
         for(unsigned int layer = 0; layer < n; ++layer) {
             ++op_cmp;
             ++op_add;
@@ -349,8 +311,10 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             {
                 fwdTree[layer].clear();
             }
+            std::cout<<"\t\tLayer "<<layer<<" nodes: "<<fwdTree[layer].size()<<"\n";
         }
         // Growing backward tree
+        std::cout<<"\tBackward tree:\n";
         for(int layer = n; layer > 0; --layer) {
             ++op_cmp;
             ++op_add;
@@ -408,6 +372,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                     iter->pathAvalaible[1] = false;
                 }
             }
+            std::cout<<"\t\tLayer "<<layer<<" nodes: "<<bkwTree[layer].size()<<"\n";
         }
         // Looking for matches in sorted lists
         NodeCompare nodecmpr;
