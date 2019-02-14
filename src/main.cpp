@@ -108,6 +108,10 @@ int main (int argc, char* argv[]){
         std::cout<<double(errorsCount)/totalCount;
         auto stop = std::chrono::high_resolution_clock::now();
         std::cout<<","<<(((std::chrono::duration<double, std::milli>)(stop - overallStart)).count())/totalCount;
-        std::cout<<","<<double(op_add)/totalCount<<","<<double(op_cmp)/totalCount<<","<<double(op_mul)/totalCount<<","<<double(op_bit)/totalCount<<std::endl;
+        std::cout<<","<<double(op_add)/totalCount<<","
+                      <<double(op_cmp)/totalCount<<","
+                      <<double(op_mul)/totalCount<<","
+                      <<double(op_bit)/totalCount
+                      <<std::endl;
     }
 }

@@ -144,7 +144,7 @@ void generate_vector(unsigned int size, unsigned int* vector)
     static std::uniform_int_distribution<int> distribution(0,1);
     for(unsigned int i=0; i<size; ++i)
     {
-        vector[i] = distribution(generator);
+        vector[i] = (unsigned int) distribution(generator);
     }
 }
 
