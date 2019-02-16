@@ -211,9 +211,11 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     temp.pathAvalaible[1] = true;
     bkwTree[n].insert(temp);
     uint64_t layerMask; // a mask that denotes zero bit-positions on a layer
-    double metricBound = delta; // target metric bound
+    double fwdMetricBound = delta, bkwMetricBound = delta; // target metric bound
     double min_metric = -1;
     bool layerComplete;
+    unsigned fwdSize = 1;
+    unsigned bkwSize = 1;
     uint64_t min_candidate = 0;
     while(min_metric == -1) {
         // Growing forward tree
@@ -238,13 +240,14 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 for(int k=0; k<2; ++k) {
                     if (layer < n &&
                         iter->pathAvalaible[k] &&
-                        (iter->metric < metricBound)) {
+                        (iter->metric < fwdMetricBound)) {
                         temp.number = k ? (iter->number ^ h[layer]) : iter->number;
                         temp.metric = iter->metric + metric(k, layer);
                         temp.path = k ? iter->path ^ (uint64_t(1) << layer) : iter->path;
                         temp.pathAvalaible[0] = true;
                         temp.pathAvalaible[1] = true;
                         insertNode(temp, fwdTree[layer + 1]);
+                        ++fwdSize;
                         iter->pathAvalaible[k] = false;
                     }
                 }
@@ -259,7 +262,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             {
                 std::cerr<<"FwdTree layer " << layer << " overflow: "
                          << fwdTree[layer].size()<<" nodes when "<<maxLayerSize<<" should be\n"
-                         << "For target metric: "<<metricBound<<std::endl;
+                         << "For target metric: "<<fwdMetricBound<<std::endl;
                 return -1;
             }
         }
@@ -285,13 +288,14 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 {
                     if (layer > 0 &&
                     iter->pathAvalaible[k] &&
-                    (iter->metric + metric(k, (unsigned int) layer-1)) < metricBound) {
-                        temp.number = k ? (iter->number ^ h[layer]) : iter->number;
+                    (iter->metric + metric(k, (unsigned int) layer-1)) < bkwMetricBound) {
+                        temp.number = k ? (iter->number ^ h[layer-1]) : iter->number;
                         temp.metric = iter->metric + metric(k, (unsigned int) layer-1);
                         temp.path = k ? iter->path ^ (uint64_t(1) << (layer-1)) : iter->path;
                         temp.pathAvalaible[0] = true;
                         temp.pathAvalaible[1] = true;
                         insertNode(temp, bkwTree[layer-1]);
+                        ++bkwSize;
                         iter->pathAvalaible[k] = false;
                     }
                 }
@@ -300,7 +304,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             {
                 std::cerr<<"BkwTree layer " << layer << " overflow: "
                     << bkwTree[layer].size()<<" nodes when "<<maxLayerSize<<" should be\n"
-                    << "For target metric: "<<metricBound<<std::endl;
+                    << "For target metric: "<<bkwMetricBound<<std::endl;
                 return -1;
             }
         }
@@ -330,14 +334,17 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             }
         }
         // Found metric can be higher than the actual minimum, double-checking
-        if(min_metric > 2*metricBound)
+        if(min_metric > fwdMetricBound+bkwMetricBound)
         {
-            metricBound = min_metric / 2;
             min_metric = -1;
+        }
+        if(bkwSize < fwdSize)
+        {
+            bkwMetricBound += delta;
         }
         else
         {
-            metricBound += delta;
+            fwdMetricBound += delta;
         }
     }
     // Outputting the result
