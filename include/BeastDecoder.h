@@ -22,6 +22,14 @@ public:
     }
 };
 
+class MetricCompare {
+public:
+    bool operator()(const Node& lhs, const Node& rhs)
+    {
+        return lhs.metric >= rhs.metric;
+    }
+};
+
 class BeastDecoder {
 private:
     unsigned int n;
@@ -31,8 +39,10 @@ private:
     double *beta;
     uint64_t maxLayerSize;
     std::set<Node, NodeCompare> *fwdTree, *bkwTree;
+    std::set<Node, MetricCompare> *bkwTreeBuffer;
 
-    void insertNode(Node& node, std::set<Node, NodeCompare>& tree);
+    template <class T>
+    void insertNode(const Node& node, std::set<Node, T>& tree);
     inline double metric(int x, unsigned int pos);
 public:
     unsigned int op_add, op_mul, op_cmp, op_bit;

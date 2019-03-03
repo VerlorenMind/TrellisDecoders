@@ -144,6 +144,7 @@ BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filena
     ranges = find_ranges(n, k, h);
     fwdTree = new std::set<Node, NodeCompare>[n+1];
     bkwTree = new std::set<Node, NodeCompare>[n+1];
+    bkwTreeBuffer = new std::set<Node, MetricCompare>[n+1];
     maxLayerSize = k < n-k ? (uint64_t(2)<<k) : (uint64_t(2)<<(n-k));
 }
 
@@ -155,6 +156,7 @@ BeastDecoder::~BeastDecoder()
     delete[] beta;
     delete[] fwdTree;
     delete[] bkwTree;
+    delete[] bkwTreeBuffer;
 }
 
 inline double BeastDecoder::metric(int x, unsigned int pos)
@@ -162,8 +164,8 @@ inline double BeastDecoder::metric(int x, unsigned int pos)
     ++op_cmp;
     return (x == alpha[pos] ? 0 : beta[pos]);
 }
-
-void BeastDecoder::insertNode(Node& node, std::set<Node, NodeCompare>& tree)
+template <class T>
+void BeastDecoder::insertNode(const Node& node, std::set<Node, T>& tree)
 {
     // Check if this node is already in the tree
     auto tempfind = tree.find(node);
@@ -193,9 +195,11 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
         beta[i] = fabs(x[i]);
         fwdTree[i].clear();
         bkwTree[i].clear();
+        bkwTreeBuffer[i].clear();
     }
     fwdTree[n].clear();
     bkwTree[n].clear();
+    bkwTreeBuffer[n].clear();
     // Initializing starting nodes
     Node temp{};
     temp.number = 0;
@@ -217,95 +221,107 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     unsigned fwdSize = 1;
     unsigned bkwSize = 1;
     uint64_t min_candidate = 0;
+    char metricChanged = 3;
     while(min_metric == -1) {
         // Growing forward tree
-        for(unsigned int layer = 0; layer < n; ++layer) {
-            // Getting layerMask for current layer
-            layerMask = 0;
-            layerComplete = false;
-            for (unsigned int i = 0; i < k; ++i) {
-                if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
-                    layerMask ^= (uint64_t(1) << i);
-                }
-            }
-            for (auto iter = fwdTree[layer].begin(); iter != fwdTree[layer].end(); ++iter) {
-                if(iter->number & layerMask)
-                {
-                    iter->pathAvalaible[0] = false;
-                }
-                if((iter->number ^ h[layer]) & layerMask)
-                {
-                    iter->pathAvalaible[1] = false;
-                }
-                for(int k=0; k<2; ++k) {
-                    if (layer < n &&
-                        iter->pathAvalaible[k] &&
-                        (iter->metric < fwdMetricBound)) {
-                        temp.number = k ? (iter->number ^ h[layer]) : iter->number;
-                        temp.metric = iter->metric + metric(k, layer);
-                        temp.path = k ? iter->path ^ (uint64_t(1) << layer) : iter->path;
-                        temp.pathAvalaible[0] = true;
-                        temp.pathAvalaible[1] = true;
-                        insertNode(temp, fwdTree[layer + 1]);
-                        ++fwdSize;
-                        iter->pathAvalaible[k] = false;
+        if(metricChanged & 1) {
+            for (unsigned int layer = 0; layer < n; ++layer) {
+                // Getting layerMask for current layer
+                layerMask = 0;
+                layerComplete = false;
+                for (unsigned int i = 0; i < k; ++i) {
+                    if (layer < ranges[2 * i] || layer >= ranges[2 * i + 1]) {
+                        layerMask ^= (uint64_t(1) << i);
                     }
                 }
-                layerComplete = layerComplete || iter->pathAvalaible[0] || iter->pathAvalaible[1];
-            }
-            // If a tree layer does not have any nodes that can be continued, erase it
-            if(!layerComplete)
-            {
-                fwdTree[layer].clear();
-            }
-            if(bkwTree[layer].size() > maxLayerSize)
-            {
-                std::cerr<<"FwdTree layer " << layer << " overflow: "
-                         << fwdTree[layer].size()<<" nodes when "<<maxLayerSize<<" should be\n"
-                         << "For target metric: "<<fwdMetricBound<<std::endl;
-                return -1;
+                for (auto iter = fwdTree[layer].begin(); iter != fwdTree[layer].end(); ++iter) {
+                    if (iter->number & layerMask) {
+                        iter->pathAvalaible[0] = false;
+                    }
+                    if ((iter->number ^ h[layer]) & layerMask) {
+                        iter->pathAvalaible[1] = false;
+                    }
+                    if(iter->metric < fwdMetricBound) {
+                        for (int k = 0; k < 2; ++k) {
+                            if (layer < n &&
+                                iter->pathAvalaible[k]) {
+                                temp.number = k ? (iter->number ^ h[layer]) : iter->number;
+                                temp.metric = iter->metric + metric(k, layer);
+                                temp.path = k ? iter->path ^ (uint64_t(1) << layer) : iter->path;
+                                temp.pathAvalaible[0] = true;
+                                temp.pathAvalaible[1] = true;
+                                insertNode<NodeCompare>(temp, fwdTree[layer + 1]);
+                                ++fwdSize;
+                                iter->pathAvalaible[k] = false;
+                            }
+                        }
+                    }
+                    layerComplete = layerComplete || iter->pathAvalaible[0] || iter->pathAvalaible[1];
+                }
+                // If a tree layer does not have any nodes that can be continued, erase it
+                if (!layerComplete) {
+                    fwdTree[layer].clear();
+                }
+                if (bkwTree[layer].size() > maxLayerSize) {
+                    std::cerr << "FwdTree layer " << layer << " overflow: "
+                              << fwdTree[layer].size() << " nodes when " << maxLayerSize << " should be\n"
+                              << "For target metric: " << fwdMetricBound << std::endl;
+                    return -1;
+                }
             }
         }
         // Growing backward tree
-        for(int layer = n; layer > 0; --layer) {
-            layerMask = 0;
-            for (unsigned int i = 0; i < k; ++i) {
-                if ((layer - 1) <= ranges[2 * i] || (layer - 1) > ranges[2 * i + 1]) {
-                    layerMask ^= (uint64_t(1) << i);
-                }
-            }
-            for (auto iter = bkwTree[layer].begin(); iter != bkwTree[layer].end(); ++iter) {
-                // The difference between forward tree is in third condition
-                if(iter->number & layerMask)
+        if(metricChanged & 2) {
+
+            for (int layer = n; layer > 0; --layer) {
+                layerMask = 0;
+                temp.metric = bkwMetricBound;
+                auto buffer_iter = bkwTreeBuffer[layer].upper_bound(temp);
+                while(buffer_iter != bkwTreeBuffer[layer].end())
                 {
-                    iter->pathAvalaible[0] = false;
+                    insertNode<NodeCompare>(*buffer_iter, bkwTree[layer]);
+                    bkwTreeBuffer[layer].erase(buffer_iter++);
+                    ++bkwSize;
                 }
-                if((iter->number ^ h[layer - 1]) & layerMask)
-                {
-                    iter->pathAvalaible[1] = false;
-                }
-                for(int k=0; k<2; ++k)
-                {
-                    if (layer > 0 &&
-                    iter->pathAvalaible[k] &&
-                    (iter->metric + metric(k, (unsigned int) layer-1)) < bkwMetricBound) {
-                        temp.number = k ? (iter->number ^ h[layer-1]) : iter->number;
-                        temp.metric = iter->metric + metric(k, (unsigned int) layer-1);
-                        temp.path = k ? iter->path ^ (uint64_t(1) << (layer-1)) : iter->path;
-                        temp.pathAvalaible[0] = true;
-                        temp.pathAvalaible[1] = true;
-                        insertNode(temp, bkwTree[layer-1]);
-                        ++bkwSize;
-                        iter->pathAvalaible[k] = false;
+                for (unsigned int i = 0; i < k; ++i) {
+                    if ((layer - 1) <= ranges[2 * i] || (layer - 1) > ranges[2 * i + 1]) {
+                        layerMask ^= (uint64_t(1) << i);
                     }
                 }
-            }
-            if(bkwTree[layer].size() > maxLayerSize)
-            {
-                std::cerr<<"BkwTree layer " << layer << " overflow: "
-                    << bkwTree[layer].size()<<" nodes when "<<maxLayerSize<<" should be\n"
-                    << "For target metric: "<<bkwMetricBound<<std::endl;
-                return -1;
+                for (auto iter = bkwTree[layer].begin(); iter != bkwTree[layer].end(); ++iter) {
+                    // The difference between forward tree is in third condition
+                    if (iter->number & layerMask) {
+                        iter->pathAvalaible[0] = false;
+                    }
+                    if ((iter->number ^ h[layer - 1]) & layerMask) {
+                        iter->pathAvalaible[1] = false;
+                    }
+                    for (int k = 0; k < 2; ++k) {
+                        double calcMetric = metric(k, (unsigned int) layer - 1);
+                        if (layer > 0 && iter->pathAvalaible[k]) {
+                            temp.number = k ? (iter->number ^ h[layer - 1]) : iter->number;
+                            temp.metric = iter->metric + calcMetric;
+                            temp.path = k ? iter->path ^ (uint64_t(1) << (layer - 1)) : iter->path;
+                            temp.pathAvalaible[0] = true;
+                            temp.pathAvalaible[1] = true;
+                            if (temp.metric < bkwMetricBound) {
+                                insertNode<NodeCompare>(temp, bkwTree[layer - 1]);
+                                ++bkwSize;
+                            }
+                            else
+                            {
+                                insertNode<MetricCompare>(temp, bkwTreeBuffer[layer - 1]);
+                            }
+                            iter->pathAvalaible[k] = false;
+                        }
+                    }
+                }
+                if (bkwTree[layer].size() > maxLayerSize) {
+                    std::cerr << "BkwTree layer " << layer << " overflow: "
+                              << bkwTree[layer].size() << " nodes when " << maxLayerSize << " should be\n"
+                              << "For target metric: " << bkwMetricBound << std::endl;
+                    return -1;
+                }
             }
         }
 
@@ -341,10 +357,12 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
         if(bkwSize < fwdSize)
         {
             bkwMetricBound += delta;
+            metricChanged = 2;
         }
         else
         {
             fwdMetricBound += delta;
+            metricChanged = 1;
         }
     }
     // Outputting the result
