@@ -247,6 +247,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                                 iter->pathAvalaible[k]) {
                                 temp.number = k ? (iter->number ^ h[layer]) : iter->number;
                                 temp.metric = iter->metric + metric(k, layer);
+                                op_add++;
                                 temp.path = k ? iter->path ^ (uint64_t(1) << layer) : iter->path;
                                 temp.pathAvalaible[0] = true;
                                 temp.pathAvalaible[1] = true;
@@ -256,6 +257,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                             }
                         }
                     }
+                    op_cmp++;
                     layerComplete = layerComplete || iter->pathAvalaible[0] || iter->pathAvalaible[1];
                 }
                 // If a tree layer does not have any nodes that can be continued, erase it
@@ -301,6 +303,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                         if (layer > 0 && iter->pathAvalaible[k]) {
                             temp.number = k ? (iter->number ^ h[layer - 1]) : iter->number;
                             temp.metric = iter->metric + calcMetric;
+                            op_add++;
                             temp.path = k ? iter->path ^ (uint64_t(1) << (layer - 1)) : iter->path;
                             temp.pathAvalaible[0] = true;
                             temp.pathAvalaible[1] = true;
@@ -312,6 +315,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                             {
                                 insertNode<MetricCompare>(temp, bkwTreeBuffer[layer - 1]);
                             }
+                            op_cmp++;
                             iter->pathAvalaible[k] = false;
                         }
                     }
@@ -335,11 +339,13 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
             while (fwdIter != fwdTree[layer].end() && bkwIter != bkwTree[layer].end()) {
                 if (!nodecmpr(*fwdIter, *bkwIter) && !nodecmpr(*bkwIter, *fwdIter)) {
                     tempMetric = fwdIter->metric + bkwIter->metric;
+                    op_add++;
                     if (min_metric == -1 || tempMetric < min_metric) {
                         // Found a match, storing it
                         min_metric = tempMetric;
                         min_candidate = fwdIter->path + bkwIter->path;
                     }
+                    op_cmp++;
                     ++fwdIter;
                     ++bkwIter;
                 } else if (nodecmpr(*fwdIter, *bkwIter)) {
