@@ -117,7 +117,7 @@ TEST_CASE("Can decode non-zero word")
     x[4] = -1.5951;
     x[5] = 0.715379;
     // True weight: 1.62833
-    // Calculated weight: 0.556272
+
     std::string codeword = "000000";
 
     dec.decode(x, y, delta);

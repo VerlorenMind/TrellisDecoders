@@ -4,8 +4,17 @@
 #include <fstream>
 #include <cstdint>
 #include <set>
+#include <queue>
+
+enum Tree {
+    NIL,
+    FWD,
+    BKW,
+};
 
 struct Node {
+    Tree tree;
+    unsigned layer;
     uint64_t number;
     mutable double metric;
     mutable uint64_t path;
@@ -37,12 +46,17 @@ private:
     unsigned int* ranges;
     int *alpha;
     double *beta;
+    double min_metric = -1;
+    uint64_t min_candidate = 0;
     uint64_t maxLayerSize;
-    std::set<Node, NodeCompare> *fwdTree, *bkwTree;
-    std::set<Node, MetricCompare> *bkwTreeBuffer;
+    std::priority_queue<Node, std::vector<Node>, MetricCompare> fwdTree, bkwTree, bkwTreeBuffer;
+    Node** trellis;
+    unsigned* offsets;
+    uint64_t* trellisProfile;
+    // std::set<Node, NodeCompare> *fwdTree, *bkwTree;
+    // std::set<Node, MetricCompare> *bkwTreeBuffer;
 
-    template <class T>
-    void insertNode(const Node& node, std::set<Node, T>& tree);
+    void insertNode(const Node& node);
     inline double metric(int x, unsigned int pos);
 public:
     unsigned int op_add, op_mul, op_cmp, op_bit;
