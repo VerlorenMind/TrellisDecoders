@@ -94,6 +94,7 @@ TEST_CASE("Can decode zero word")
 
 TEST_CASE("Can decode non-zero word")
 {
+    // notice - with this data it should fail
     std::ifstream filename("../tests/test_matrix");
     uint64_t* g;
     unsigned int n, k;
@@ -104,19 +105,19 @@ TEST_CASE("Can decode non-zero word")
     unsigned int* y = new unsigned int[6];
     unsigned int* u = new unsigned int[6];
     double delta = 0.5;
-    u[0] = 0;
-    u[1] = 1;
+    u[0] = 1;
+    u[1] = 0;
     u[2] = 1;
-    u[3] = 0;
+    u[3] = 1;
     u[4] = 0;
     u[5] = 1;
-    x[0] = -1.61124;
-    x[1] = 0.996227;
-    x[2] = 0.744849;
-    x[3] = 1.62833;
-    x[4] = -1.5951;
-    x[5] = 0.715379;
-    // True weight: 1.62833
+    x[0] = 0.503536;
+    x[1] = 0.423184;
+    x[2] = 1.87715;
+    x[3] = -0.107348;
+    x[4] = -1.7087;
+    x[5] = -1.10187;
+    // True weight: 1.6324
 
     std::string codeword = "000000";
 
