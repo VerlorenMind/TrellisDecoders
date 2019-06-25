@@ -21,7 +21,7 @@ struct Node {
     mutable bool pathAvalaible[2];
 };
 
-class NodeCompare {
+/*class NodeCompare {
 public:
     unsigned int timesCalled = 0;
     bool operator()(const Node& lhs, const Node& rhs)
@@ -29,7 +29,7 @@ public:
         ++timesCalled;
         return lhs.number < rhs.number;
     }
-};
+};*/
 
 class MetricCompare {
 public:
@@ -49,9 +49,12 @@ private:
     double min_metric = -1;
     uint64_t min_candidate = 0;
     uint64_t maxLayerSize;
-    std::priority_queue<Node, std::vector<Node>, MetricCompare> fwdTree, bkwTree, bkwTreeBuffer;
+    // std::priority_queue<Node, std::vector<Node>, MetricCompare> fwdTree, bkwTree, bkwTreeBuffer;
+    Node *fwdTree, *fwdTreeBuffer, *bkwTree, *bkwTreeBuffer;
+    unsigned fwdTreeSize, fwdTreeBufferSize, bkwTreeSize, bkwTreeBufferSize;
     Node** trellis;
     unsigned* offsets;
+    unsigned trellisSize;
     uint64_t* trellisProfile;
     // std::set<Node, NodeCompare> *fwdTree, *bkwTree;
     // std::set<Node, MetricCompare> *bkwTreeBuffer;

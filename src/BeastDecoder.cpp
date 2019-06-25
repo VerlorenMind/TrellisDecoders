@@ -150,6 +150,7 @@ BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filena
     trellis[0] = new Node[1];
     trellisProfile[0] = 1;
     offsets[0] = 0;
+    trellisSize = 1;
     for(unsigned i=0; i<n; ++i)
     {
         pow = 0;
@@ -166,15 +167,17 @@ BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filena
             }
         }
         trellisProfile[i+1] = uint64_t(1)<<pow;
+        trellisSize += trellisProfile[i+1];
         trellis[i+1] = new Node[trellisProfile[i+1]];
         for(unsigned j=0; j<trellisProfile[i]; ++j)
         {
             trellis[i][j].tree = NIL;
         }
     }
-    // fwdTree = new std::set<Node, NodeCompare>[n+1];
-    // bkwTree = new std::set<Node, NodeCompare>[n+1];
-    // bkwTreeBuffer = new std::set<Node, MetricCompare>[n+1];
+    fwdTree = new Node[trellisSize];
+    fwdTreeBuffer = new Node[trellisSize];
+    bkwTree = new Node[trellisSize];
+    bkwTreeBuffer = new Node[trellisSize];
     maxLayerSize = k < n-k ? (uint64_t(2)<<k) : (uint64_t(2)<<(n-k));
 }
 
@@ -190,9 +193,10 @@ BeastDecoder::~BeastDecoder()
         delete[] trellis[i];
     }
     delete[] trellis;
-    // delete[] fwdTree;
-    // delete[] bkwTree;
-    // delete[] bkwTreeBuffer;
+    delete[] fwdTree;
+    delete[] fwdTreeBuffer;
+    delete[] bkwTree;
+    delete[] bkwTreeBuffer;
 }
 
 inline double BeastDecoder::metric(int x, unsigned int pos)
@@ -242,17 +246,12 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     }
 
     // Emptying trees
-    while(!fwdTree.empty())
+    for(unsigned i=0; i<trellisSize; ++i)
     {
-        fwdTree.pop();
-    }
-    while(!bkwTree.empty())
-    {
-        bkwTree.pop();
-    }
-    while(!bkwTreeBuffer.empty())
-    {
-        bkwTreeBuffer.pop();
+        fwdTree[i].tree = NIL;
+        fwdTreeBuffer[i].tree = NIL;
+        bkwTree[i].tree = NIL;
+        bkwTreeBuffer[i].tree = NIL;
     }
     for(unsigned i=0; i<=n;++i)
     {
@@ -271,12 +270,15 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     temp.path = 0;
     temp.pathAvalaible[0] = true;
     temp.pathAvalaible[1] = true;
-    fwdTree.push(temp);
+    fwdTree[0] = temp;
+    fwdTreeSize = 1;
     trellis[0][0] = temp;
     temp.tree = BKW;
     temp.layer = n;
-    bkwTree.push(temp);
+    bkwTree[0] = temp;
+    bkwTreeSize = 1;
     trellis[n][0] = temp;
+    fwdTreeBufferSize = bkwTreeBufferSize = 0;
 
     uint64_t layerMask; // a mask that denotes zero bit-positions on a layer
     double fwdMetricBound = 0, bkwMetricBound = 0; // target metric bound
@@ -288,140 +290,173 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     while(min_metric == -1 || min_metric > fwdMetricBound+bkwMetricBound) {
         if(bkwSize < fwdSize)
         {
+            op_cmp += 1;
             bkwMetricBound += delta;
             ++op_add;
             metricChanged = 2;
         }
         else if(bkwSize > fwdSize)
         {
+            op_cmp += 2;
             fwdMetricBound += delta;
             ++op_add;
             metricChanged = 1;
         }
         else
         {
+            op_cmp += 2;
             fwdMetricBound += delta;
             bkwMetricBound += delta;
             op_add += 2;
             metricChanged = 3;
         }
-        op_cmp += 2;
-        ++op_add;
         // Growing forward tree
         if(metricChanged & 1) {
-            Node iter = fwdTree.top();
-            ++op_cmp;
-            while (iter.metric < n && iter.metric < fwdMetricBound) {
-                ++op_cmp;
-                fwdTree.pop();
+            unsigned count = 0, index = 0;
+            if(fwdTreeBufferSize > 0) {
+                fwdTreeSize = 0;
+                while (index < trellisSize && count < fwdTreeBufferSize) {
+                    Node iter = fwdTreeBuffer[index];
+                    if (iter.tree!=NIL) {
+                        ++count;
+                        if (iter.metric<fwdMetricBound) {
+                            fwdTree[fwdTreeSize] = iter;
+                            ++fwdTreeSize;
+                            fwdTreeBuffer[index].tree = NIL;
+                        }
+                    }
+                    ++index;
+                }
+                fwdTreeBufferSize = fwdTreeBufferSize - fwdTreeSize;
+            }
+            count = index = 0;
+            while(index < trellisSize && count < fwdTreeSize) {
+                Node iter = fwdTree[index];
+                fwdTree[index].tree = NIL;
+                ++index;
+                if(iter.tree != NIL) {
+                    ++count;
+                    if(iter.layer < n) {
+                        // Getting layerMask for current layer TODO move these calculations to constructor
+                        layerMask = 0;
+                        for (unsigned int i = 0; i<k; ++i) {
+                            if (iter.layer<ranges[2*i] || iter.layer>=ranges[2*i+1]) {
+                                layerMask ^= (uint64_t(1) << i);
+                            }
+                        }
 
-                // Getting layerMask for current layer TODO move these calculations to constructor
-                layerMask = 0;
-                for (unsigned int i = 0; i < k; ++i) {
-                    if (iter.layer < ranges[2 * i] || iter.layer >= ranges[2 * i + 1]) {
-                        layerMask ^= (uint64_t(1) << i);
+                        // Checking avalaible continuations for a node
+                        if (iter.number & layerMask) {
+                            iter.pathAvalaible[0] = false;
+                        }
+                        if ((iter.number ^ h[iter.layer]) & layerMask) {
+                            iter.pathAvalaible[1] = false;
+                        }
+
+                        // Expanding tree
+                        for (int k = 0; k<2; ++k) {
+                            if (iter.pathAvalaible[k]) {
+                                temp.tree = iter.tree;
+                                temp.layer = iter.layer+1;
+                                temp.number = k ? (iter.number ^ h[iter.layer]) : iter.number;
+                                temp.metric = iter.metric+metric(k, iter.layer);
+                                ++op_add;
+                                temp.path = k ? iter.path ^ (uint64_t(1) << iter.layer) : iter.path;
+                                temp.pathAvalaible[0] = true;
+                                temp.pathAvalaible[1] = true;
+                                insertNode(temp);
+                                if(temp.metric < fwdMetricBound) {
+                                    fwdTree[fwdTreeSize] = temp;
+                                    ++fwdTreeSize;
+                                }
+                                else {
+                                    unsigned bufferIndex = 0;
+                                    while(fwdTreeBuffer[bufferIndex].tree != NIL) {
+                                        ++bufferIndex;
+                                    }
+                                    fwdTreeBuffer[bufferIndex] = temp;
+                                    ++fwdTreeBufferSize;
+                                }
+                                ++fwdSize;
+                            }
+                        }
                     }
                 }
-
-                // Checking avalaible continuations for a node
-                if (iter.number & layerMask) {
-                    iter.pathAvalaible[0] = false;
-                }
-                if ((iter.number ^ h[iter.layer]) & layerMask) {
-                    iter.pathAvalaible[1] = false;
-                }
-
-                // Expanding tree
-                for (int k = 0; k < 2; ++k) {
-                    if (iter.layer < n &&
-                        iter.pathAvalaible[k]) {
-                        temp.tree = iter.tree;
-                        temp.layer = iter.layer + 1;
-                        temp.number = k ? (iter.number ^ h[iter.layer]) : iter.number;
-                        temp.metric = iter.metric + metric(k, iter.layer);
-                        ++op_add;
-                        temp.path = k ? iter.path ^ (uint64_t(1) << iter.layer) : iter.path;
-                        temp.pathAvalaible[0] = true;
-                        temp.pathAvalaible[1] = true;
-                        insertNode(temp);
-                        fwdTree.push(temp);
-                        ++fwdSize;
-                    }
-                }
-                iter = fwdTree.top();
             }
         }
         // Growing backward tree
         if(metricChanged & 2)
         {
-            if(!bkwTreeBuffer.empty()) {
-                Node buffer_iter = bkwTreeBuffer.top();
-                while (buffer_iter.metric < bkwMetricBound) {
-                    ++op_cmp;
-                    bkwTreeBuffer.pop();
-                    bkwTree.push(buffer_iter);
-                    insertNode(buffer_iter);
-                    ++bkwSize;
-                    buffer_iter = bkwTreeBuffer.top();
+            unsigned count = 0, index = 0;
+            if(bkwTreeBufferSize > 0) {
+                bkwTreeSize = 0;
+                while (index < trellisSize && count < bkwTreeBufferSize) {
+                    Node iter = bkwTreeBuffer[index];
+                    if (iter.tree!=NIL) {
+                        ++count;
+                        if (iter.metric<bkwMetricBound) {
+                            bkwTree[bkwTreeSize] = iter;
+                            ++bkwTreeSize;
+                            bkwTreeBuffer[index].tree = NIL;
+                            insertNode(iter);
+                        }
+                    }
+                    ++index;
                 }
-                ++op_cmp;
+                bkwTreeBufferSize = bkwTreeBufferSize - bkwTreeSize;
             }
+            count = index = 0;
+            while(index < trellisSize && count < bkwTreeSize) {
+                Node iter = bkwTree[index];
+                bkwTree[index].tree = NIL;
+                ++index;
+                if(iter.tree != NIL) {
+                    ++count;
+                    if(iter.layer > 0) {
+                        // TODO: Move these computations to constructor
+                        layerMask = 0;
+                        for (unsigned int i = 0; i<k; ++i) {
+                            if ((iter.layer-1)<=ranges[2*i] || (iter.layer-1)>ranges[2*i+1]) {
+                                layerMask ^= (uint64_t(1) << i);
+                            }
+                        }
 
-            Node iter = bkwTree.top();
-            ++op_cmp;
-            while (iter.layer > 0 && iter.metric < bkwMetricBound) {
-                ++op_cmp;
-
-                if(bkwTree.empty())
-                {
-                    break;
-                }
-                bkwTree.pop();
-                // std::cerr<<"Size after pop: "<<bkwTree.size()<<std::endl;
-
-                // TODO: Move these computations to constructor
-                layerMask = 0;
-                for (unsigned int i = 0; i < k; ++i) {
-                    if ((iter.layer - 1) <= ranges[2 * i] || (iter.layer - 1) > ranges[2 * i + 1]) {
-                        layerMask ^= (uint64_t(1) << i);
+                        if (iter.number & layerMask) {
+                            iter.pathAvalaible[0] = false;
+                        }
+                        if ((iter.number ^ h[iter.layer-1]) & layerMask) {
+                            iter.pathAvalaible[1] = false;
+                        }
+                        for (int k = 0; k<2; ++k) {
+                            double calcMetric = metric(k, iter.layer-1);
+                            if (iter.layer>0 && iter.pathAvalaible[k]) {
+                                temp.tree = iter.tree;
+                                temp.layer = iter.layer-1;
+                                temp.number = k ? (iter.number ^ h[iter.layer-1]) : iter.number;
+                                temp.metric = iter.metric+calcMetric;
+                                ++op_add;
+                                temp.path = k ? iter.path ^ (uint64_t(1) << (iter.layer-1)) : iter.path;
+                                temp.pathAvalaible[0] = true;
+                                temp.pathAvalaible[1] = true;
+                                if (temp.metric<bkwMetricBound) {
+                                    insertNode(temp);
+                                    bkwTree[bkwTreeSize] = temp;
+                                    ++bkwTreeSize;
+                                    ++bkwSize;
+                                }
+                                else {
+                                    unsigned bufferIndex = 0;
+                                    while (bkwTreeBuffer[bufferIndex].tree!=NIL) {
+                                        ++bufferIndex;
+                                    }
+                                    bkwTreeBuffer[bufferIndex] = temp;
+                                    ++bkwTreeBufferSize;
+                                }
+                                ++op_cmp;
+                            }
+                        }
                     }
                 }
-
-                if (iter.number & layerMask) {
-                    iter.pathAvalaible[0] = false;
-                }
-                if ((iter.number ^ h[iter.layer - 1]) & layerMask) {
-                    iter.pathAvalaible[1] = false;
-                }
-                for (int k = 0; k < 2; ++k) {
-                    double calcMetric = metric(k, iter.layer - 1);
-                    if (iter.layer > 0 && iter.pathAvalaible[k]) {
-                        temp.tree = iter.tree;
-                        temp.layer = iter.layer - 1;
-                        temp.number = k ? (iter.number ^ h[iter.layer - 1]) : iter.number;
-                        temp.metric = iter.metric + calcMetric;
-                        ++op_add;
-                        temp.path = k ? iter.path ^ (uint64_t(1) << (iter.layer - 1)) : iter.path;
-                        temp.pathAvalaible[0] = true;
-                        temp.pathAvalaible[1] = true;
-                        if (temp.metric < bkwMetricBound) {
-                            insertNode(temp);
-                            bkwTree.push(temp);
-                            // std::cerr<<"Size after push: "<<bkwTree.size()<<std::endl;
-                            ++bkwSize;
-                        }
-                        else
-                        {
-                            bkwTreeBuffer.push(temp);
-                        }
-                        ++op_cmp;
-                    }
-                }
-                if(bkwTree.empty())
-                {
-                    break;
-                }
-                iter = bkwTree.top();
             }
         }
     }
