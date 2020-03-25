@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(include)
 
-set(SOURCE_FILES src/BeastDecoder.cpp include/BeastDecoder.h include/myutil.h)
+set(SOURCE_FILES src/BeastDecoder.cpp include/BeastDecoder.h include/myutil.h src/TrellisDecoder.cpp src/myutil.cpp)
 
 if(TESTING)
     set(TEST_FILES tests/maintest.cpp include/catch.hpp tests/test_constructor.cpp ${SOURCE_FILES})

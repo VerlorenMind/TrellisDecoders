@@ -1,7 +1,6 @@
 #include <iostream>
 #include <chrono>
 #include <random>
-#include <myutil.h>
 #include "BeastDecoder.h"
 
 void generate_vector(unsigned int size, unsigned int* vector)

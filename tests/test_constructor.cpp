@@ -105,10 +105,10 @@ TEST_CASE("Can decode non-zero word")
     unsigned int* y = new unsigned int[6];
     unsigned int* u = new unsigned int[6];
     double delta = 0.5;
-    u[0] = 1;
-    u[1] = 0;
+    u[0] = 0;
+    u[1] = 1;
     u[2] = 1;
-    u[3] = 1;
+    u[3] = 0;
     u[4] = 0;
     u[5] = 1;
     x[0] = 0.503536;
@@ -159,7 +159,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     double overall = 0;
 
     double dev = sqrt((1/(((1.0 * k) / n)*pow(10, stn / 10)))/2);
-    unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
+    unsigned int seed = 123; // (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine gen(seed);
     std::normal_distribution<double> rv(0.0, dev);
 
@@ -178,6 +178,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     for(unsigned int test = 0; test < tests; ++test)
     {
         generate_vector(k, u);
+        INFO("Test #" << test);
         INFO("Informational word: " << array_to_sstream<unsigned int>(k, u).str());
         for(unsigned int i=0; i<n; ++i)
         {
