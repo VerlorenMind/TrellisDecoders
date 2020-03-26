@@ -15,7 +15,7 @@ enum InsertionStatus
     DISCARDED,
     ENDED,
 };
-class BeastDecoder : public TrellisDecoder{
+class BeastDecoder : public TrellisDecoder {
 protected:
     double min_metric = -1;
     uint64_t min_candidate = 0;

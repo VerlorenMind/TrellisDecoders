@@ -1,5 +1,6 @@
 #include "myutil.h"
 
+
 uint64_t* readMatrix(std::ifstream& input, unsigned int n, unsigned int k)
 {
     // Reading matrix from a file and storing it's columns as uints
@@ -122,3 +123,5 @@ unsigned int* find_ranges(unsigned int n, unsigned int k, uint64_t* a)
     }
     return ranges;
 }
+
+
