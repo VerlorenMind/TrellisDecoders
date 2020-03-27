@@ -33,6 +33,13 @@ BSDDecoder::BSDDecoder(unsigned int n, unsigned int k, std::ifstream& filename) 
     bkwTree = new Node[2*trellisSize];
 }
 
+
+BSDDecoder::BSDDecoder(unsigned int n, unsigned int k, uint64_t *h) : TrellisDecoder(n, k, h)
+{
+    fwdTree = new Node[2*trellisSize];
+    bkwTree = new Node[2*trellisSize];
+}
+
 BSDDecoder::~BSDDecoder()
 {
     delete[] fwdTree;
@@ -43,12 +50,11 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
 {
     op_add = 0;
     op_cmp = 0;
-    op_mul = 0;
-    op_bit = 0;
 
     for(unsigned int i=0; i<n; ++i)
     {
         alpha[i] = x[i] < 0 ? 0 : 1;
+        ++op_cmp;
         beta[i] = fabs(x[i]);
     }
     memset(fwdTree, 0, 2*trellisSize*sizeof(Node));
@@ -106,18 +112,20 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                         temp.layer = iter.layer + 1;
                         fwdLayerReached = fwdLayerReached < temp.layer ? temp.layer : fwdLayerReached;
                         temp.number = j ? (iter.number ^ h[iter.layer]) : iter.number;
-                        double m = iter.metric+metric(j, iter.layer);
+                        double m = metric(j, iter.layer);
                         temp.path = j ? iter.path ^ (uint64_t(1) << iter.layer) : iter.path;
                         temp.pathAvalaible[0] = true;
                         temp.pathAvalaible[1] = true;
                         if (m != 0) {
                             temp.metric = iter.metric + m;
+                            ++op_add;
                             bubbleInsert(fwdTree, fwdTreeStart + 1, fwdTreeEnd, temp);
                             ++fwdTreeEnd;
                         } else {
                             temp.metric = iter.metric;
                             fwdTree[fwdTreeStart] = temp;
                         }
+                        ++op_cmp;
                     }
                 }
                 if (fwdTree[fwdTreeStart].tree == NIL && fwdTreeStart < fwdTreeEnd) {
@@ -131,16 +139,23 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                     if (fwdTree[j].layer == bkwTree[l].layer &&
                         fwdTree[j].number == bkwTree[l].number) {
                         double m = fwdTree[j].metric + bkwTree[l].metric;
-                        if (min_metric == -1 || m < min_metric) {
+                        ++op_add;
+                        if (min_metric == -1) {
                             min_metric = m;
                             min_candidate = bkwTree[l].path + fwdTree[j].path;
+                        }
+                        else
+                        {
+                            if (m < min_metric)
+                            {
+                                min_metric = m;
+                                min_candidate = bkwTree[l].path + fwdTree[j].path;
+                            }
+                            ++op_cmp;
                         }
                     }
                 }
             }
-        }
-        if (min_metric != -1) {
-            continue;
         }
         if(bkwTreeEnd - bkwTreeStart > 0)
         {
@@ -168,18 +183,20 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                         temp.layer = iter.layer - 1;
                         bkwLayerReached = bkwLayerReached > temp.layer ? temp.layer : bkwLayerReached;
                         temp.number = j ? (iter.number ^ h[iter.layer - 1]) : iter.number;
-                        double m = iter.metric+metric(j, iter.layer-1);
+                        double m = metric(j, iter.layer-1);
                         temp.path = j ? iter.path ^ (uint64_t(1) << (iter.layer - 1)) : iter.path;
                         temp.pathAvalaible[0] = true;
                         temp.pathAvalaible[1] = true;
                         if (m != 0) {
                             temp.metric = iter.metric + m;
+                            ++op_add;
                             bubbleInsert(bkwTree, bkwTreeStart + 1, bkwTreeEnd, temp);
                             ++bkwTreeEnd;
                         } else {
                             temp.metric = iter.metric;
                             bkwTree[bkwTreeStart] = temp;
                         }
+                        ++op_cmp;
                     }
                 }
                 if (bkwTree[bkwTreeStart].tree == NIL && bkwTreeStart < bkwTreeEnd) {
@@ -193,9 +210,19 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                     if (bkwTree[j].layer == fwdTree[l].layer &&
                         fwdTree[l].number == bkwTree[j].number) {
                         double m = fwdTree[l].metric + bkwTree[j].metric;
-                        if (min_metric == -1 || m < min_metric) {
+                        ++op_add;
+                        if (min_metric == -1) {
                             min_metric = m;
                             min_candidate = bkwTree[j].path + fwdTree[l].path;
+                        }
+                        else
+                        {
+                            if (m < min_metric)
+                            {
+                                min_metric = m;
+                                min_candidate = bkwTree[j].path + fwdTree[l].path;
+                            }
+                            ++op_cmp;
                         }
                     }
                 }
@@ -208,3 +235,4 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
     }
     return min_metric;
 }
+

@@ -2,12 +2,51 @@
 
 TrellisDecoder::TrellisDecoder(unsigned int n, unsigned int k, std::ifstream &filename)
 {
+    uint64_t *checkmatrix = readMatrix(filename, n, k);
+    init(n, k, checkmatrix);
+    delete[] checkmatrix;
+}
+
+TrellisDecoder::TrellisDecoder(unsigned int n, unsigned int k, uint64_t* checkmatrix)
+{
+    init(n, k, checkmatrix);
+}
+
+TrellisDecoder::~TrellisDecoder()
+{
+    delete[] h;
+    delete[] ranges;
+    delete[] alpha;
+    delete[] beta;
+    delete[] offsets;
+    for(unsigned i=0; i<=n; ++i)
+    {
+        delete[] trellis[i];
+    }
+    delete[] trellis;
+    delete[] trellisProfile;
+}
+
+double TrellisDecoder::metric(int x, unsigned int pos)
+{
+    ++op_cmp;
+    return (x == alpha[pos] ? 0 : beta[pos]);
+}
+
+double TrellisDecoder::decode(double *x, unsigned int *u, double delta)
+{
+    return 0;
+}
+
+void TrellisDecoder::init(unsigned int n, unsigned int k, uint64_t *checkmatrix)
+{
 // Transforming matrix to minspan form and finding active ranges of it's rows
     this->n = n;
     this->k = k;
     alpha = new int[n];
     beta = new double[n];
-    h = readMatrix(filename, n, k);
+    h = new uint64_t[n];
+    memcpy(h, checkmatrix, n*sizeof(uint64_t));
     minspan_form(n, k, h);
     ranges = find_ranges(n, k, h);
     trellis = new Node *[n + 1];
@@ -44,30 +83,4 @@ TrellisDecoder::TrellisDecoder(unsigned int n, unsigned int k, std::ifstream &fi
         }
     }
     maxLayerSize = k < n-k ? (uint64_t(2)<<k) : (uint64_t(2)<<(n-k));
-}
-
-TrellisDecoder::~TrellisDecoder()
-{
-    delete[] h;
-    delete[] ranges;
-    delete[] alpha;
-    delete[] beta;
-    delete[] offsets;
-    for(unsigned i=0; i<=n; ++i)
-    {
-        delete[] trellis[i];
-    }
-    delete[] trellis;
-    delete[] trellisProfile;
-}
-
-double TrellisDecoder::metric(int x, unsigned int pos)
-{
-    ++op_cmp;
-    return (x == alpha[pos] ? 0 : beta[pos]);
-}
-
-double TrellisDecoder::decode(double *x, unsigned int *u, double delta)
-{
-    return 0;
 }

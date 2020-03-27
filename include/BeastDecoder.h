@@ -23,8 +23,10 @@ protected:
     unsigned fwdTreeSize, fwdTreeBufferSize, bkwTreeSize, bkwTreeBufferSize;
     InsertionStatus insertNode(const Node& node);
     bool updateNode(Node& node);
+    void init();
 public:
     BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename);
+    BeastDecoder(unsigned int n, unsigned int k, uint64_t *h); 
     double decode(double* x, unsigned int* u, double delta);
     ~BeastDecoder();
 };

@@ -2,6 +2,7 @@
 #define BEAST_TRELLISDECODER_H
 
 #include <fstream>
+#include <cstring>
 
 #include "myutil.h"
 
@@ -33,10 +34,12 @@ protected:
     uint64_t* trellisProfile;
     uint64_t maxLayerSize;
     double metric(int x, unsigned int pos);
+    void init(unsigned int n, unsigned int k, uint64_t* checkmatrix);
 public:
-    unsigned int op_add, op_mul, op_cmp, op_bit;
+    unsigned int op_add, op_cmp;
     uint64_t* h;
     TrellisDecoder(unsigned int n, unsigned int k, std::ifstream& filename);
+    TrellisDecoder(unsigned int n, unsigned int k, uint64_t* checkmatrix);
     virtual double decode(double* x, unsigned int* u, double delta);
     ~TrellisDecoder();
 };

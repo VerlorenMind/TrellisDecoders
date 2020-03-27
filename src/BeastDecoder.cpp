@@ -5,8 +5,7 @@
 
 #include "BeastDecoder.h"
 
-
-BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename) : TrellisDecoder(n, k, filename)
+void BeastDecoder::init()
 {
     fwdTree = new Node[trellisSize];
     fwdTreeSize = 0;
@@ -16,6 +15,16 @@ BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filena
     bkwTreeSize = 0;
     bkwTreeBuffer = new Node[trellisSize];
     bkwTreeBufferSize = 0;
+}
+
+BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename) : TrellisDecoder(n, k, filename)
+{
+    init();
+}
+
+BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, uint64_t *h) : TrellisDecoder(n, k, h)
+{
+    init();
 }
 
 BeastDecoder::~BeastDecoder()
@@ -112,12 +121,11 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
 {
     op_add = 0;
     op_cmp = 0;
-    op_mul = 0;
-    op_bit = 0;
 
     for(unsigned int i=0; i<n; ++i)
     {
         alpha[i] = x[i] < 0 ? 0 : 1;
+        ++op_cmp;
         beta[i] = fabs(x[i]);
     }
 
@@ -163,24 +171,21 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
     min_metric = -1;
     min_candidate = 0;
     char metricChanged;
-    while(min_metric == -1 || min_metric > fwdMetricBound+bkwMetricBound) {
+    while(true) {
         if(bkwSize < fwdSize)
         {
-            op_cmp += 1;
             bkwMetricBound += delta;
             ++op_add;
             metricChanged = 2;
         }
         else if(bkwSize > fwdSize)
         {
-            op_cmp += 2;
             fwdMetricBound += delta;
             ++op_add;
             metricChanged = 1;
         }
         else
         {
-            op_cmp += 2;
             fwdMetricBound += delta;
             bkwMetricBound += delta;
             op_add += 2;
@@ -200,6 +205,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                             ++fwdTreeSize;
                             fwdTreeBuffer[index].tree = NIL;
                         }
+                        ++op_cmp;
                     }
                     ++index;
                 }
@@ -212,8 +218,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                 ++index;
                 if(iter.tree != NIL) {
                     ++count;
-                    // bool canBeContinued = updateNode(iter);
-                    if(/*canBeContinued &&*/ iter.layer < n) {
+                    if(iter.layer < n) {
                         // Getting layerMask for current layer TODO move these calculations to constructor
                         layerMask = 0;
                         for (unsigned int i = 0; i<k; ++i) {
@@ -353,13 +358,11 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                                     break;
                                 }
                                 case REPLACED:
-                                //{
-                                //    assert(false);
-                                //}
                                 case DISCARDED:
                                 case ENDED: break;
                             }
                         }
+                        ++op_cmp;
                     }
                     ++index;
                 }
@@ -476,12 +479,20 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                                     bkwTreeBuffer[bufferIndex] = temp;
                                     ++bkwTreeBufferSize;
                                 }
-                                ++op_cmp;
                             }
                         }
                     }
                 }
             }
+        }
+        if(min_metric != -1)
+        {
+            if(min_metric <= fwdMetricBound + bkwMetricBound)
+            {
+                ++op_cmp;
+                break;
+            }
+            ++op_cmp;
         }
     }
     // Outputting the result

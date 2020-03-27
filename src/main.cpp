@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include <random>
+#include <BSDDecoder.h>
 #include "BeastDecoder.h"
 
 void generate_vector(unsigned int size, unsigned int* vector)
@@ -26,7 +27,7 @@ void apply_noise(const int* x, double* y, double dev, unsigned int len)
 
 void usage()
 {
-    std::cout<<"Usage: beast errors total stn d file\nerrors - allowed number of errors\ntotal - total decoder runs\nstn - signal-to-noise ratio\nd - delta parameter of the decoder\nfile - file with code parameters, generator and check matrices\n";
+    std::cout<<"Usage: beast errors total stn d file file\nerrors - allowed number of errors\ntotal - total decoder runs\nstn - signal-to-noise ratio\nd - delta parameter of the decoder\nfile - file with code parameters, generator and check matrices\n";
 }
 
 int main (int argc, char* argv[]){
@@ -37,7 +38,7 @@ int main (int argc, char* argv[]){
         auto overallStart = std::chrono::high_resolution_clock::now();
         unsigned int maxErrors = (unsigned int) strtol(argv[1], nullptr, 10),
             maxTotal = (unsigned int) strtol(argv[2], nullptr, 10),
-            errorsCount = 0, totalCount = 0;
+            bsdErrorsCount = 0,beastErrorsCount = 0, totalCount = 0;
         double stn = strtod(argv[3], nullptr), delta = strtod(argv[4], nullptr);
         std::ifstream input(argv[5]);
         unsigned int n, k;
@@ -45,21 +46,23 @@ int main (int argc, char* argv[]){
         double dev = sqrt((1 / (((1.0 * k) / n) * pow(10, stn / 10))) / 2);
 
         uint64_t *g = readMatrix(input, n, k);
+        uint64_t *h = readMatrix(input, n, n - k);
 
-        BeastDecoder dec(n, n - k, input);
+        BeastDecoder beastdec(n, n - k, h);
+        BSDDecoder bsddec(n, n - k, h);
 
         double *x = new double[n];
-        unsigned int *y = new unsigned int[n];
+        unsigned int *beasty = new unsigned int[n];
+        unsigned int *bsdy = new unsigned int[n];
         unsigned int *u = new unsigned int[k];
-        unsigned long op_add, op_mul, op_cmp, op_bit;
+        unsigned long beast_op_add = 0, beast_op_cmp = 0;
+        unsigned long bsd_op_add = 0, bsd_op_cmp = 0;
         int *ux = new int[n];
-        double trueWeight, calcWeight, noise;
         unsigned int temp;
-        bool flag;
+        bool beastflag, bsdflag;
         std::string word;
 
-        while(totalCount < maxTotal && errorsCount < maxErrors) {
-            trueWeight = 0;
+        while(totalCount < maxTotal && (bsdErrorsCount < maxErrors && beastErrorsCount < maxErrors)) {
             generate_vector(k, u);
             for (unsigned int i = 0; i < n; ++i) {
                 temp = 0;
@@ -73,7 +76,7 @@ int main (int argc, char* argv[]){
             {
                 for(unsigned int i=0; i<n; ++i)
                 {
-                    synd ^= (ux[i] ? dec.h[i] : 0);
+                    synd ^= (ux[i] ? beastdec.h[i] : 0);
                 }
             }
             if(synd != 0)
@@ -81,36 +84,46 @@ int main (int argc, char* argv[]){
                 std::cout<<"Error!";
             }
             apply_noise(ux, x, dev, n);
-            calcWeight = dec.decode(x, y, delta);
-            op_add += dec.op_add;
-            op_bit += dec.op_bit;
-            op_cmp += dec.op_cmp;
-            op_mul += dec.op_mul;
-            flag = true;
+            beastdec.decode(x, beasty, delta);
+            bsddec.decode(x, bsdy, delta);
+            beast_op_add += beastdec.op_add;
+            beast_op_cmp += beastdec.op_cmp;
+            bsd_op_add += bsddec.op_add;
+            bsd_op_cmp += bsddec.op_cmp;
+            bsdflag = true;
+            beastflag = true;
             for (unsigned int i = 0; i < n; ++i) {
-                if (y[i] != ux[i]) {
-                    flag = false;
-                    break;
+                if (beasty[i] != ux[i]) {
+                    beastflag = false;
+                }
+                if (bsdy[i] != ux[i]) {
+                    bsdflag = false;
                 }
             }
-            if(!flag)
+            if(!bsdflag)
             {
-                ++errorsCount;
+                ++bsdErrorsCount;
+            }
+            if(!beastflag)
+            {
+                ++beastErrorsCount;
             }
             ++totalCount;
         }
         delete[] x;
-        delete[] y;
+        delete[] beasty;
+        delete[] bsdy;
         delete[] u;
         delete[] g;
         delete[] ux;
-        std::cout<<double(errorsCount)/totalCount;
         auto stop = std::chrono::high_resolution_clock::now();
+        std::cout<<double(beastErrorsCount)/totalCount<<",";
+        std::cout<<double(bsdErrorsCount)/totalCount;
         std::cout<<","<<(((std::chrono::duration<double, std::milli>)(stop - overallStart)).count())/totalCount;
-        std::cout<<","<<double(op_add)/totalCount<<","
-                      <<double(op_cmp)/totalCount<<","
-                      <<double(op_mul)/totalCount<<","
-                      <<double(op_bit)/totalCount
+        std::cout<<","<<double(beast_op_add)/totalCount<<","
+                      <<double(beast_op_cmp)/totalCount<<","
+                      <<double(bsd_op_add)/totalCount<<","
+                      <<double(bsd_op_cmp)/totalCount<<","
                       <<std::endl;
     }
 }

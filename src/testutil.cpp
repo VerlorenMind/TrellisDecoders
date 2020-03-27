@@ -43,6 +43,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     unsigned int temp;
     bool flag;
     std::string word;
+    int fails = 0;
 
 
     for(unsigned int test = 0; test < tests; ++test)
@@ -122,9 +123,13 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         INFO("Syndrome: " << synd);
         INFO("True Euclidean metric: " << euclTrue);
         INFO("Resulted Euclidean metric: " << euclCalc);
-        CHECK(((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
-               synd == 0 &&
-               (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON)));
+        if(!((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
+            synd == 0 &&
+            (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON)))
+        {
+            ++fails;
+            CHECK(false);
+        }
         if(!((test+1) % 250))
         {
             WARN("Time to decode "<< test+1<< " words: "<< overall<< "ms");
@@ -138,4 +143,5 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     delete[] ux;
     delete dec;
     WARN("Overall time: "<< overall <<"ms");
+    WARN("Failed tests: "<<fails);
 }
