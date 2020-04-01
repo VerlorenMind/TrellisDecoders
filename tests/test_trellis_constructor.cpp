@@ -5,15 +5,23 @@ TEST_CASE("CONSTRUCTOR: Can read test matrix from file")
     std::ifstream filename("../tests/test_matrix");
     unsigned int n, k;
     filename >> n >> k;
-    uint64_t *matrix = readMatrix(filename, n, k);
-
-    REQUIRE(matrix[0] == 0b111);
-    REQUIRE(matrix[1] == 0b100);
-    REQUIRE(matrix[2] == 0b011);
-    REQUIRE(matrix[3] == 0b101);
-    REQUIRE(matrix[4] == 0b010);
-    REQUIRE(matrix[5] == 0b001);
-
+    int **matrix = readMatrix(filename, n, k);
+    int answer[3][6] = {
+            {1, 0, 1, 1, 0, 1},
+            {1, 0, 1, 0, 1, 0},
+            {1, 1, 0, 1, 0, 0},
+    };
+    for(unsigned int i=0; i<k; ++i)
+    {
+        for(unsigned int j=0; j<n; ++j)
+        {
+            REQUIRE(answer[i][j] == matrix[i][j]);
+        }
+    }
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
     delete[] matrix;
 }
 
@@ -22,17 +30,25 @@ TEST_CASE("CONSTRUCTOR: Minspan form for test matrix is achieved")
     std::ifstream filename("../tests/test_matrix");
     unsigned int n, k;
     filename >> n >> k;
-    uint64_t *matrix = readMatrix(filename, n, k);
-
+    int **matrix = readMatrix(filename, n, k);
+    int answer[3][6] = {
+            {1, 1, 0, 1, 0, 0},
+            {0, 1, 1, 1, 1, 0},
+            {0, 0, 0, 1, 1, 1},
+    };
     minspan_form(n, k, matrix);
 
-    REQUIRE(matrix[0] == 0b001);
-    REQUIRE(matrix[1] == 0b011);
-    REQUIRE(matrix[2] == 0b010);
-    REQUIRE(matrix[3] == 0b111);
-    REQUIRE(matrix[4] == 0b110);
-    REQUIRE(matrix[5] == 0b100);
-
+    for(unsigned int i=0; i<k; ++i)
+    {
+        for(unsigned int j=0; j<n; ++j)
+        {
+            REQUIRE(answer[i][j] == matrix[i][j]);
+        }
+    }
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
     delete[] matrix;
 }
 
@@ -41,7 +57,7 @@ TEST_CASE("CONSTRUCTOR: Ranges for  test matrix can be found")
     std::ifstream filename("../tests/test_matrix");
     unsigned int n, k;
     filename >> n >> k;
-    uint64_t *matrix = readMatrix(filename, n, k);
+    int **matrix = readMatrix(filename, n, k);
 
     unsigned int *ranges = find_ranges(n, k, matrix);
 
@@ -52,6 +68,10 @@ TEST_CASE("CONSTRUCTOR: Ranges for  test matrix can be found")
     REQUIRE(ranges[4] == 0);
     REQUIRE(ranges[5] == 3);
 
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
     delete[] matrix;
     delete[] ranges;
 }
@@ -61,16 +81,25 @@ TEST_CASE("CONSTRUCTOR: Can read RM(16,5) matrix from file")
     std::ifstream filename("../data/reed-muller-16-1");
     unsigned int n, k;
     filename >> n >> k;
-    uint64_t *matrix = readMatrix(filename, n, k);
+    int **matrix = readMatrix(filename, n, k);
 
-    uint64_t answer[16] =
-            {1, 10, 100, 1000,
-             10000, 1011, 1101, 1110,
-             111, 10011, 10101, 10110,
-             11001, 11010, 11100, 11111};
-    for(unsigned int i=0; i<n; ++i)
+    int answer[5][16] = {
+            {1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1},
+            {0, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1},
+            {0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1},
+            {0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1},
+            {0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1},
+    };
+    for (unsigned int i = 0; i < k; ++i)
     {
-        REQUIRE(answer[i] == matrix[i]);
+        for (unsigned int j = 0; j < n; ++j)
+        {
+            REQUIRE(answer[i][j] == matrix[i][j]);
+        }
+    }
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
     }
     delete[] matrix;
 }
@@ -80,36 +109,58 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) matrix is achieved")
     std::ifstream filename("../data/reed-muller-16-1");
     unsigned int n, k;
     filename >> n >> k;
-    uint64_t *matrix = readMatrix(filename, n, k);
+    int **matrix = readMatrix(filename, n, k);
 
+    int answer[5][16] = {
+            {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0},
+            {0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0},
+            {0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0},
+            {0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0},
+            {0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1},
+    };
     minspan_form(n, k, matrix);
 
-    REQUIRE(matrix[0] == 0b001);
-    REQUIRE(matrix[1] == 0b011);
-    REQUIRE(matrix[2] == 0b010);
-    REQUIRE(matrix[3] == 0b111);
-    REQUIRE(matrix[4] == 0b110);
-    REQUIRE(matrix[5] == 0b100);
-
+    for(unsigned int i=0; i<k; ++i)
+    {
+        for(unsigned int j=0; j<n; ++j)
+        {
+            REQUIRE(answer[i][j] == matrix[i][j]);
+        }
+    }
+    WARN("Resulted matrix:\n" << matrix_to_sstream(k, n, matrix).str());
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
     delete[] matrix;
 }
 
 TEST_CASE("CONSTRUCTOR: Ranges for RM(16, 5) matrix can be found")
 {
-    std::ifstream filename("../tests/test_matrix");
+    std::ifstream filename("../data/reed-muller-16-1");
     unsigned int n, k;
     filename >> n >> k;
-    uint64_t *matrix = readMatrix(filename, n, k);
+    int **matrix = readMatrix(filename, n, k);
+    minspan_form(n, k, matrix);
 
     unsigned int *ranges = find_ranges(n, k, matrix);
 
+    WARN("Resulted matrix:\n" << matrix_to_sstream(k, n, matrix).str());
     REQUIRE(ranges[0] == 0);
-    REQUIRE(ranges[1] == 5);
-    REQUIRE(ranges[2] == 0);
-    REQUIRE(ranges[3] == 4);
-    REQUIRE(ranges[4] == 0);
-    REQUIRE(ranges[5] == 3);
+    REQUIRE(ranges[1] == 8);
+    REQUIRE(ranges[2] == 1);
+    REQUIRE(ranges[3] == 14);
+    REQUIRE(ranges[4] == 2);
+    REQUIRE(ranges[5] == 13);
+    REQUIRE(ranges[6] == 3);
+    REQUIRE(ranges[7] == 11);
+    REQUIRE(ranges[8] == 4);
+    REQUIRE(ranges[9] == 15);
 
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
     delete[] matrix;
     delete[] ranges;
 }

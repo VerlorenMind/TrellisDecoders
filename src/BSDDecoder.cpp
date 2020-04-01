@@ -34,7 +34,7 @@ BSDDecoder::BSDDecoder(unsigned int n, unsigned int k, std::ifstream& filename) 
 }
 
 
-BSDDecoder::BSDDecoder(unsigned int n, unsigned int k, uint64_t *h) : TrellisDecoder(n, k, h)
+BSDDecoder::BSDDecoder(unsigned int n, unsigned int k, int **h) : TrellisDecoder(n, k, h)
 {
     fwdTree = new Node[2*trellisSize];
     bkwTree = new Node[2*trellisSize];
@@ -46,7 +46,7 @@ BSDDecoder::~BSDDecoder()
     delete[] bkwTree;
 }
 
-double BSDDecoder::decode(double *x, unsigned int *u, double delta)
+double BSDDecoder::decode(double *x, int *u, double delta)
 {
     op_add = 0;
     op_cmp = 0;
@@ -102,7 +102,12 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                 if (iter.number & layerMask) {
                     iter.pathAvalaible[0] = false;
                 }
-                if ((iter.number ^ h[iter.layer]) & layerMask) {
+                uint64_t tempnum = iter.number;
+                for(unsigned int i=0; i<k; ++i)
+                {
+                    tempnum ^= (uint64_t(h[i][iter.layer]) << i);
+                }
+                if (tempnum & layerMask) {
                     iter.pathAvalaible[1] = false;
                 }
                 for (unsigned int j = 0; j < 2; ++j) {
@@ -111,7 +116,7 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                         temp.tree = FWD;
                         temp.layer = iter.layer + 1;
                         fwdLayerReached = fwdLayerReached < temp.layer ? temp.layer : fwdLayerReached;
-                        temp.number = j ? (iter.number ^ h[iter.layer]) : iter.number;
+                        temp.number = j ? tempnum : iter.number;
                         double m = metric(j, iter.layer);
                         temp.path = j ? iter.path ^ (uint64_t(1) << iter.layer) : iter.path;
                         temp.pathAvalaible[0] = true;
@@ -173,7 +178,12 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                 if (iter.number & layerMask) {
                     iter.pathAvalaible[0] = false;
                 }
-                if ((iter.number ^ h[iter.layer-1]) & layerMask) {
+                uint64_t tempnum = iter.number;
+                for(unsigned int i=0; i<k; ++i)
+                {
+                    tempnum ^= (uint64_t(h[i][iter.layer-1]) << i);
+                }
+                if (tempnum & layerMask) {
                     iter.pathAvalaible[1] = false;
                 }
                 for (unsigned int j = 0; j < 2; ++j) {
@@ -182,7 +192,7 @@ double BSDDecoder::decode(double *x, unsigned int *u, double delta)
                         temp.tree = BKW;
                         temp.layer = iter.layer - 1;
                         bkwLayerReached = bkwLayerReached > temp.layer ? temp.layer : bkwLayerReached;
-                        temp.number = j ? (iter.number ^ h[iter.layer - 1]) : iter.number;
+                        temp.number = j ? tempnum: iter.number;
                         double m = metric(j, iter.layer-1);
                         temp.path = j ? iter.path ^ (uint64_t(1) << (iter.layer - 1)) : iter.path;
                         temp.pathAvalaible[0] = true;

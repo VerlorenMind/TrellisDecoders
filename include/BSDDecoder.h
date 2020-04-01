@@ -13,8 +13,8 @@ protected:
     void bubbleInsert(Node* array, unsigned start, unsigned end, Node elem);
 public:
     BSDDecoder(unsigned int n, unsigned int k, std::ifstream& filename);
-    BSDDecoder(unsigned int n, unsigned int k, uint64_t *h); 
+    BSDDecoder(unsigned int n, unsigned int k, int **h);
     ~BSDDecoder();
-    double decode(double *x, unsigned int *u, double delta);
+    double decode(double *x, int *u, double delta);
 };
 #endif //BEAST_BSDDECODER_H

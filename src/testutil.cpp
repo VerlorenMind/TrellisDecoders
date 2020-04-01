@@ -2,13 +2,13 @@
 
 const double EPSILON = 0.0000001;
 
-void generate_vector(unsigned int size, unsigned int* vector)
+void generate_vector(unsigned int size, int* vector)
 {
     static std::default_random_engine generator;
     static std::uniform_int_distribution<int> distribution(0,1);
     for(unsigned int i=0; i<size; ++i)
     {
-        vector[i] = (unsigned int) distribution(generator);
+        vector[i] = distribution(generator);
     }
 }
 
@@ -26,18 +26,19 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     std::default_random_engine gen(seed);
     std::normal_distribution<double> rv(0.0, dev);
 
-    uint64_t *g = readMatrix(input, n, k);
+    int **g = readMatrix(input, n, k);
+    int **h = readMatrix(input, n, n-k);
     TrellisDecoder *dec;
     if (decoder == "beast")
     {
-        dec = new BeastDecoder(n, n-k, input);
-    } else if (decoder == "bsd")
+        dec = new BeastDecoder(n, n-k, h);
+    } else // if (decoder == "bsd")
     {
-        dec = new BSDDecoder(n, n - k, input);
+        dec = new BSDDecoder(n, n - k, h);
     }
     double* x = new double[n];
-    unsigned int* y = new unsigned int[n];
-    unsigned int* u = new unsigned int[k];
+    int* y = new int[n];
+    int* u = new int[k];
     int* ux = new int[n];
     double metric, calcWeight, noise, euclTrue, euclCalc;
     unsigned int temp;
@@ -50,13 +51,13 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     {
         generate_vector(k, u);
         INFO("Test #" << test);
-        INFO("Informational word: " << array_to_sstream<unsigned int>(k, u).str());
+        INFO("Informational word: " << array_to_sstream<int>(k, u).str());
         for(unsigned int i=0; i<n; ++i)
         {
             temp = 0;
             for(unsigned int j=0; j<k; ++j)
             {
-                temp ^= ((g[i] & (uint64_t(u[j]) << j))>>j);
+                temp ^= g[i][j] & u[j];
             }
             ux[i] = (temp ? 1 : 0);
         }
@@ -104,12 +105,15 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         {
             yint += y[i] << i;
         }
-        uint64_t synd = 0;
+        int *synd = new int[n-k];
+        memset(synd, 0, (n-k)*sizeof(int));
+        int syndsum = 0;
         for(unsigned int j=0; j<n-k; ++j)
         {
             for(unsigned int i=0; i<n; ++i)
             {
-                synd ^= (ux[i] ? dec->h[i] : 0);
+                synd[i] ^= (ux[i] ? h[j][i] : 0);
+                syndsum += (ux[i] ? h[j][i] : 0);
             }
         }
         euclCalc = 0;
@@ -117,14 +121,14 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         {
             euclCalc += ((y[i] ? 1. : -1.) - x[i])*((y[i] ? 1. : -1.) - x[i]);
         }
-        INFO("Decoded word: " << array_to_sstream<unsigned int>(n, y).str());
+        INFO("Decoded word: " << array_to_sstream<int>(n, y).str());
         INFO("True weight: " << metric);
         INFO("Calculated weight: " << calcWeight);
         INFO("Syndrome: " << synd);
         INFO("True Euclidean metric: " << euclTrue);
         INFO("Resulted Euclidean metric: " << euclCalc);
         if(!((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
-            synd == 0 &&
+            syndsum == 0 &&
             (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON)))
         {
             ++fails;
@@ -139,6 +143,10 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     delete[] x;
     delete[] y;
     delete[] u;
+    for(unsigned int i=0; i<k; ++i)
+    {
+        delete[] g[i];
+    }
     delete[] g;
     delete[] ux;
     delete dec;

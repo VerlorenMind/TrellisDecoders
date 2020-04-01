@@ -45,8 +45,8 @@ int main (int argc, char* argv[]){
         input >> n >> k;
         double dev = sqrt((1 / (((1.0 * k) / n) * pow(10, stn / 10))) / 2);
 
-        uint64_t *g = readMatrix(input, n, k);
-        uint64_t *h = readMatrix(input, n, n - k);
+        int **g = readMatrix(input, n, k);
+        int **h = readMatrix(input, n, n - k);
 
         BeastDecoder beastdec(n, n - k, h);
         BSDDecoder bsddec(n, n - k, h);
@@ -67,16 +67,16 @@ int main (int argc, char* argv[]){
             for (unsigned int i = 0; i < n; ++i) {
                 temp = 0;
                 for (unsigned int j = 0; j < k; ++j) {
-                    temp ^= ((g[i] & (u[j] << j)) >> j);
+                    temp ^= g[i][j] & u[j];
                 }
                 ux[i] = (temp ? 1 : 0);
             }
-            uint64_t synd = 0;
+            int synd = 0;
             for(unsigned int j=0; j<n-k; ++j)
             {
                 for(unsigned int i=0; i<n; ++i)
                 {
-                    synd ^= (ux[i] ? beastdec.h[i] : 0);
+                    synd += (ux[i] ? h[j][i] : 0);
                 }
             }
             if(synd != 0)
@@ -114,7 +114,16 @@ int main (int argc, char* argv[]){
         delete[] beasty;
         delete[] bsdy;
         delete[] u;
+        for(unsigned int i=0; i<k; ++i)
+        {
+            delete[] g[i];
+        }
         delete[] g;
+        for(unsigned int i=0; i<n-k; ++i)
+        {
+            delete[] h[i];
+        }
+        delete[] h;
         delete[] ux;
         auto stop = std::chrono::high_resolution_clock::now();
         std::cout<<stn<<",";

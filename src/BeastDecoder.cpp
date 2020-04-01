@@ -22,7 +22,7 @@ BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filena
     init();
 }
 
-BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, uint64_t *h) : TrellisDecoder(n, k, h)
+BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, int **h) : TrellisDecoder(n, k, h)
 {
     init();
 }
@@ -99,25 +99,7 @@ InsertionStatus BeastDecoder::insertNode(const Node& node)
     return status;
 }
 
-bool BeastDecoder::updateNode(Node& node)
-{
-    bool canBeContinued = true;
-    uint64_t trellisNum = node.number >> offsets[node.layer];
-    if(trellis[node.layer][trellisNum].tree == NIL) {
-        assert(false);
-    }
-    else if(trellis[node.layer][trellisNum].tree == node.tree)
-    {
-        node = trellis[node.layer][trellisNum];
-    }
-    else
-    {
-        canBeContinued = false;
-    }
-    return canBeContinued;
-}
-
-double BeastDecoder::decode(double *x, unsigned int *u, double delta)
+double BeastDecoder::decode(double *x, int *u, double delta)
 {
     op_add = 0;
     op_cmp = 0;
@@ -231,7 +213,12 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                         if (iter.number & layerMask) {
                             iter.pathAvalaible[0] = false;
                         }
-                        if ((iter.number ^ h[iter.layer]) & layerMask) {
+                        uint64_t tempnum = iter.number;
+                        for(unsigned int i=0; i<k; ++i)
+                        {
+                            tempnum ^= (uint64_t(h[i][iter.layer]) << i);
+                        }
+                        if (tempnum & layerMask) {
                             iter.pathAvalaible[1] = false;
                         }
 
@@ -240,7 +227,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                             if (iter.pathAvalaible[k]) {
                                 temp.tree = iter.tree;
                                 temp.layer = iter.layer+1;
-                                temp.number = k ? (iter.number ^ h[iter.layer]) : iter.number;
+                                temp.number = k ? tempnum : iter.number;
                                 temp.metric = iter.metric+metric(k, iter.layer);
                                 ++op_add;
                                 temp.path = k ? iter.path ^ (uint64_t(1) << iter.layer) : iter.path;
@@ -387,7 +374,12 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                         if (iter.number & layerMask) {
                             iter.pathAvalaible[0] = false;
                         }
-                        if ((iter.number ^ h[iter.layer-1]) & layerMask) {
+                        uint64_t tempnum = iter.number;
+                        for(unsigned int i=0; i<k; ++i)
+                        {
+                            tempnum ^= (uint64_t(h[i][iter.layer-1]) << i);
+                        }
+                        if (tempnum & layerMask) {
                             iter.pathAvalaible[1] = false;
                         }
                         for (int k = 0; k<2; ++k) {
@@ -396,7 +388,7 @@ double BeastDecoder::decode(double *x, unsigned int *u, double delta)
                             {
                                 temp.tree = iter.tree;
                                 temp.layer = iter.layer - 1;
-                                temp.number = k ? (iter.number ^ h[iter.layer - 1]) : iter.number;
+                                temp.number = k ? tempnum : iter.number;
                                 temp.metric = iter.metric + calcMetric;
                                 ++op_add;
                                 temp.path = k ? iter.path ^ (uint64_t(1) << (iter.layer - 1)) : iter.path;

@@ -5,11 +5,13 @@ const double EPSILON = 0.0000001;
 TEST_CASE("BEAST: Can decode zero word")
 {
     std::ifstream filename("../tests/test_matrix");
-    uint64_t* g;
-    g = readMatrix(filename, 6, 3);
-    BeastDecoder dec(6, 3, filename);
-    double* x = new double[6];
-    unsigned int* u = new unsigned int[6];
+    unsigned int n, k;
+    filename >> n >> k;
+    int **g;
+    g = readMatrix(filename, n, k);
+    BeastDecoder dec(n, k, filename);
+    double* x = new double[n];
+    int* u = new int[n];
     double delta = 0.5;
     x[0] = -1.5;
     x[1] = -0.5;
@@ -20,13 +22,17 @@ TEST_CASE("BEAST: Can decode zero word")
 
     dec.decode(x, u, delta);
 
-    for(unsigned int i=0; i<6; ++i)
+    for(unsigned int i=0; i<n; ++i)
     {
         REQUIRE(u[i] == 0);
     }
 
     delete[] x;
     delete[] u;
+    for(unsigned int i=0; i<k; ++i)
+    {
+        delete[] g[i];
+    }
     delete[] g;
 }
 
@@ -34,14 +40,14 @@ TEST_CASE("BEAST: Can decode non-zero word")
 {
     // notice - with this data it should fail
     std::ifstream filename("../tests/test_matrix");
-    uint64_t* g;
+    int** g;
     unsigned int n, k;
     filename >> n >> k;
     g = readMatrix(filename, n, k);
     BeastDecoder dec(n, k, filename);
-    double* x = new double[6];
-    unsigned int* y = new unsigned int[6];
-    unsigned int* u = new unsigned int[6];
+    double* x = new double[n];
+    int* y = new int[n];
+    int* u = new int[n];
     double delta = 0.5;
     u[0] = 0;
     u[1] = 1;
@@ -61,16 +67,21 @@ TEST_CASE("BEAST: Can decode non-zero word")
 
     dec.decode(x, y, delta);
 
-    for(unsigned int j=0; j<6; ++j)
+    for(unsigned int j=0; j<n; ++j)
     {
         codeword[j] = y[j] ? '1' : '0';
     }
     INFO("Decoded word: "<<codeword);
-    for(unsigned int i=0; i<6; ++i)
+    for(unsigned int i=0; i<n; ++i)
     {
         CHECK(y[i] == u[i]);
     }
 
+
+    for(unsigned int i=0; i<k; ++i)
+    {
+        delete[] g[i];
+    }
     delete[] g;
     delete[] x;
     delete[] u;
