@@ -116,3 +116,13 @@ TEST_CASE("BEAST: Can decode BCH(63, 39, 9)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "beast");
 }
+
+TEST_CASE("BEAST: Can decode RM(16, 5)")
+{
+    test_decoder(1000, 1, 0.5, "../data/reed-muller-16-1", "beast");
+}
+
+TEST_CASE("BEAST: Can decode RM(32, 6)")
+{
+    test_decoder(1000, 1, 0.5, "../data/reed-muller-32-1", "beast");
+}

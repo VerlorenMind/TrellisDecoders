@@ -117,6 +117,7 @@ int main (int argc, char* argv[]){
         delete[] g;
         delete[] ux;
         auto stop = std::chrono::high_resolution_clock::now();
+        std::cout<<stn<<",";
         std::cout<<double(beastErrorsCount)/totalCount<<",";
         std::cout<<double(bsdErrorsCount)/totalCount;
         std::cout<<","<<(((std::chrono::duration<double, std::milli>)(stop - overallStart)).count())/totalCount;
