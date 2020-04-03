@@ -30,7 +30,7 @@ protected:
     int *alpha;
     double *beta;
     Node** trellis;
-    unsigned* offsets;
+    // unsigned* offsets;
     unsigned trellisSize;
     uint64_t* trellisProfile;
     uint64_t maxLayerSize;
@@ -41,6 +41,6 @@ public:
     TrellisDecoder(unsigned int n, unsigned int k, std::ifstream& filename);
     TrellisDecoder(unsigned int n, unsigned int k, int **checkmatrix);
     virtual double decode(double* x, int* u, double delta);
-    ~TrellisDecoder();
+    virtual ~TrellisDecoder();
 };
 #endif //BEAST_TRELLISDECODER_H

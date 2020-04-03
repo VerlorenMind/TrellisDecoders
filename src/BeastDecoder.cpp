@@ -38,7 +38,32 @@ BeastDecoder::~BeastDecoder()
 InsertionStatus BeastDecoder::insertNode(const Node& node)
 {
     InsertionStatus status;
-    uint64_t trellisNum = node.number >> offsets[node.layer];
+    uint64_t trellisNum = 0;
+    if(node.tree == FWD)
+    {
+        int ind = 0;
+        for (unsigned int i = 0; i < k; ++i)
+        {
+            if ((node.layer - 1) >= ranges[2 * i] && (node.layer - 1) < ranges[2 * i + 1])
+            {
+                trellisNum ^= (((node.number >> i) & 1) << ind);
+                ++ind;
+            }
+        }
+    }
+    else
+    {
+        int ind = 0;
+        for (unsigned int i = 0; i < k; ++i)
+        {
+            if ((node.layer) > ranges[2 * i] && (node.layer) <= ranges[2 * i + 1])
+            {
+                trellisNum ^= (((node.number >> i) & 1) << ind);
+                ++ind;
+            }
+        }
+    }
+    assert(trellisNum < trellisProfile[node.layer]);
     if(trellis[node.layer][trellisNum].tree == NIL) {
         trellis[node.layer][trellisNum] = node;
         status = INSERTED;

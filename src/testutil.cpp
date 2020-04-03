@@ -45,8 +45,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
     bool flag;
     std::string word;
     int fails = 0;
-
-
+    int *synd = new int[n-k];
     for(unsigned int test = 0; test < tests; ++test)
     {
         generate_vector(k, u);
@@ -57,7 +56,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
             temp = 0;
             for(unsigned int j=0; j<k; ++j)
             {
-                temp ^= g[i][j] & u[j];
+                temp ^= g[j][i] & u[j];
             }
             ux[i] = (temp ? 1 : 0);
         }
@@ -105,16 +104,18 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         {
             yint += y[i] << i;
         }
-        int *synd = new int[n-k];
         memset(synd, 0, (n-k)*sizeof(int));
         int syndsum = 0;
         for(unsigned int j=0; j<n-k; ++j)
         {
             for(unsigned int i=0; i<n; ++i)
             {
-                synd[i] ^= (ux[i] ? h[j][i] : 0);
-                syndsum += (ux[i] ? h[j][i] : 0);
+                synd[j] ^= y[i] & h[j][i];
             }
+        }
+        for(unsigned int j=0; j<n-k; ++j)
+        {
+            syndsum += synd[j];
         }
         euclCalc = 0;
         for(unsigned int i=0; i<n; ++i)
@@ -124,9 +125,10 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         INFO("Decoded word: " << array_to_sstream<int>(n, y).str());
         INFO("True weight: " << metric);
         INFO("Calculated weight: " << calcWeight);
-        INFO("Syndrome: " << synd);
+        INFO("Syndrome: " << array_to_sstream<int>(n-k, synd).str());
         INFO("True Euclidean metric: " << euclTrue);
         INFO("Resulted Euclidean metric: " << euclCalc);
+        // INFO("Check matrix:\n"<<matrix_to_sstream(n-k, n, h).str());
         if(!((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
             syndsum == 0 &&
             (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON)))
@@ -148,8 +150,14 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
         delete[] g[i];
     }
     delete[] g;
+    for(unsigned int i=0; i<n-k; ++i)
+    {
+        delete[] h[i];
+    }
+    delete[] h;
     delete[] ux;
     delete dec;
+    delete[] synd;
     WARN("Overall time: "<< overall <<"ms");
     WARN("Failed tests: "<<fails);
 }

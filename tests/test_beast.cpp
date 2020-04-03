@@ -108,25 +108,25 @@ TEST_CASE("BEAST: Can decode BCH(31, 21, 5)")
     test_decoder(1000, 1, 0.5, "../data/bch-31-21-5", "beast");
 }
 
-TEST_CASE("BEAST: Can decode BCH(63, 7, 57)")
-{
-    test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "beast");
-}
-
-TEST_CASE("BEAST: Can decode BCH(63, 16, 23)")
-{
-    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "beast");
-}
-
-TEST_CASE("BEAST: Can decode BCH(63, 30, 13)")
-{
-    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "beast");
-}
-
-TEST_CASE("BEAST: Can decode BCH(63, 39, 9)")
-{
-    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "beast");
-}
+//TEST_CASE("BEAST: Can decode BCH(63, 7, 57)")
+//{
+//   test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "beast");
+//}
+//
+//TEST_CASE("BEAST: Can decode BCH(63, 16, 23)")
+//{
+//    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "beast");
+//}
+//
+//TEST_CASE("BEAST: Can decode BCH(63, 30, 13)")
+//{
+//    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "beast");
+//}
+//
+//TEST_CASE("BEAST: Can decode BCH(63, 39, 9)")
+//{
+//    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "beast");
+//}
 
 TEST_CASE("BEAST: Can decode RM(16, 5)")
 {

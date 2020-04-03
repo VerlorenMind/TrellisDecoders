@@ -164,3 +164,48 @@ TEST_CASE("CONSTRUCTOR: Ranges for RM(16, 5) matrix can be found")
     delete[] matrix;
     delete[] ranges;
 }
+
+TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved")
+{
+    std::ifstream filename("../data/reed-muller-16-1");
+    unsigned int n, k;
+    filename >> n >> k;
+    int **matrix = readMatrix(filename, n, k);
+    WARN("Read matrix:\n" << matrix_to_sstream<int>(k, n, matrix).str());
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
+    delete[] matrix;
+    matrix = readMatrix(filename, n, n-k);
+    WARN("Read matrix:\n" << matrix_to_sstream<int>(n-k, n, matrix).str());
+
+    int answer[11][16] = {
+            {1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0},
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1},
+    };
+    minspan_form(n, n-k, matrix);
+
+    WARN("Resulted matrix:\n" << matrix_to_sstream(n-k, n, matrix).str());
+    for(unsigned int i=0; i<k; ++i)
+    {
+        for(unsigned int j=0; j<n; ++j)
+        {
+            REQUIRE(answer[i][j] == matrix[i][j]);
+        }
+    }
+    for (unsigned int i = 0; i < k; ++i)
+    {
+        delete[] matrix[i];
+    }
+    delete[] matrix;
+}

@@ -74,7 +74,7 @@ TEST_CASE("BSD: Can decode non-zero word")
     INFO("Decoded word: "<<codeword);
     for(unsigned int i=0; i<6; ++i)
     {
-        CHECK(y[i] == u[i]);
+        REQUIRE(y[i] == u[i]);
     }
 
     for(unsigned int i=0; i<k; ++i)
@@ -109,22 +109,32 @@ TEST_CASE("BSD: Can decode BCH(31, 21, 5)")
     test_decoder(1000, 1, 0.5, "../data/bch-31-21-5", "bsd");
 }
 
-TEST_CASE("BSD: Can decode BCH(63, 7, 57)")
+//TEST_CASE("BSD: Can decode BCH(63, 7, 57)")
+//{
+//    test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "bsd");
+//}
+//
+//TEST_CASE("BSD: Can decode BCH(63, 16, 23)")
+//{
+//    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "bsd");
+//}
+//
+//TEST_CASE("BSD: Can decode BCH(63, 30, 13)")
+//{
+//    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "bsd");
+//}
+//
+//TEST_CASE("BSD: Can decode BCH(63, 39, 9)")
+//{
+//    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "bsd");
+//}
+
+TEST_CASE("BSD: Can decode RM(16, 5)")
 {
-    test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "bsd");
+    test_decoder(1000, 1, 0.5, "../data/reed-muller-16-1", "bsd");
 }
 
-TEST_CASE("BSD: Can decode BCH(63, 16, 23)")
+TEST_CASE("BSD: Can decode RM(32, 6)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "bsd");
-}
-
-TEST_CASE("BSD: Can decode BCH(63, 30, 13)")
-{
-    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "bsd");
-}
-
-TEST_CASE("BSD: Can decode BCH(63, 39, 9)")
-{
-    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "bsd");
+    test_decoder(1000, 100, 0.5, "../data/reed-muller-32-1", "bsd");
 }

@@ -26,7 +26,7 @@ TrellisDecoder::~TrellisDecoder()
     delete[] ranges;
     delete[] alpha;
     delete[] beta;
-    delete[] offsets;
+    // delete[] offsets;
     for(unsigned i=0; i<=n; ++i)
     {
         delete[] trellis[i];
@@ -54,26 +54,28 @@ void TrellisDecoder::init(unsigned int n, unsigned int k, int **checkmatrix)
     alpha = new int[n];
     beta = new double[n];
     h = new int*[k];
-    for(unsigned int i=0; i<n; ++i)
+    for(unsigned int i=0; i<k; ++i)
     {
         h[i] = new int[n];
         memcpy(h[i], checkmatrix[i], n*sizeof(int));
     }
+    std::string tempmatr = matrix_to_sstream(k, n, h).str();
     minspan_form(n, k, h);
+    tempmatr = matrix_to_sstream(k, n, h).str();
     ranges = find_ranges(n, k, h);
     trellis = new Node *[n + 1];
     trellisProfile = new uint64_t[n + 1];
-    offsets = new unsigned[n + 1];
+    // offsets = new unsigned[n + 1];
     bool offsetFlag;
     unsigned pow;
     trellis[0] = new Node[1];
     trellisProfile[0] = 1;
-    offsets[0] = 0;
+    // offsets[0] = 0;
     trellisSize = 1;
     for (unsigned i = 0; i < n; ++i)
     {
         pow = 0;
-        offsets[i + 1] = 0;
+        // offsets[i + 1] = 0;
         offsetFlag = true;
         for (unsigned int j = 0; j < k; ++j)
         {
@@ -83,7 +85,7 @@ void TrellisDecoder::init(unsigned int n, unsigned int k, int **checkmatrix)
                 offsetFlag = false;
             } else if (offsetFlag)
             {
-                ++offsets[i + 1];
+                // ++offsets[i + 1];
             }
         }
         trellisProfile[i + 1] = uint64_t(1) << pow;

@@ -26,21 +26,24 @@ void minspan_form(unsigned int n, unsigned int k, int** a) {
     unsigned int fixed_rows = 0; // number of rows on top of the matrix that were transformed
     unsigned int* rows = new unsigned int[k]; // rows with 1s in i'th column
     uint64_t temp;
+    std::string tempmatr;
     // Left side
-    for(unsigned int i=0; i<k; ++i)
+    int i = 0;
+    while(fixed_rows < k)
     {
+        tempmatr = matrix_to_sstream(k, n, a).str();
         num = 0;
-        // Finding all rows with 1s in i'th column
-        for(unsigned int j=fixed_rows; j<k; ++j)
+        for(int j=fixed_rows; j<k; ++j)
         {
-            if(a[j][i])
+            if (a[j][i])
             {
-                rows[num++] = j;
+                rows[num++] = (unsigned int) j;
             }
         }
+        ++i;
         if(num == 0)
         {
-            continue; // should never happen with non-zero determinant TODO: handle this exception
+            continue;
         }
         else
         {
@@ -49,12 +52,9 @@ void minspan_form(unsigned int n, unsigned int k, int** a) {
             {
                 for(unsigned int l=0; l<n; ++l)
                 {
-                   // temp = a[l] & (uint64_t(1) << rows[0]);
-                   // a[l] ^= (((a[l] & (uint64_t(1) << i)) << (rows[0]-i)) ^ (a[l] & (uint64_t(1) << rows[0])));
-                   // a[l] ^= (temp >> (rows[0]-i)) ^ (a[l] & (uint64_t(1)<<i));
-                   std::swap(a[rows[0]][l], a[i][l]);
+                   std::swap(a[rows[0]][l], a[fixed_rows][l]);
                 }
-                rows[0] = i;
+                rows[0] = fixed_rows;
             }
 
             ++fixed_rows;
@@ -64,7 +64,6 @@ void minspan_form(unsigned int n, unsigned int k, int** a) {
             {
                 for(unsigned int j=0; j<n; ++j)
                 {
-                    // a[j] ^= (a[j] & (uint64_t(1)<<rows[0]))<<(rows[l]-rows[0]);
                     a[rows[l]][j] ^= a[rows[0]][j];
                 }
             }
@@ -73,9 +72,8 @@ void minspan_form(unsigned int n, unsigned int k, int** a) {
     // Right side
     // Same stuff as above, but with different indices and without swapping rows
     fixed_rows = 0;
-    int *fixed_nums = new int[n-k];
-    std::string tempmatr;
-    int i = n-1;
+    int *fixed_nums = new int[k];
+    i = n-1;
     while(fixed_rows < k)
     {
         tempmatr = matrix_to_sstream(k, n, a).str();
@@ -117,6 +115,7 @@ void minspan_form(unsigned int n, unsigned int k, int** a) {
         }
     }
     delete [] rows;
+    delete[] fixed_nums;
 }
 
 unsigned int* find_ranges(unsigned int n, unsigned int k, int** a)
