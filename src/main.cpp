@@ -2,15 +2,16 @@
 #include <chrono>
 #include <random>
 #include <BSDDecoder.h>
+#include <cassert>
 #include "BeastDecoder.h"
 
-void generate_vector(unsigned int size, unsigned int* vector)
+void generate_vector(unsigned int size, int* vector)
 {
     static std::default_random_engine generator;
     static std::uniform_int_distribution<int> distribution(0,1);
     for(unsigned int i=0; i<size; ++i)
     {
-        vector[i] = (unsigned int) distribution(generator);
+        vector[i] = distribution(generator);
     }
 }
 
@@ -52,9 +53,10 @@ int main (int argc, char* argv[]){
         BSDDecoder bsddec(n, n - k, h);
 
         double *x = new double[n];
-        unsigned int *beasty = new unsigned int[n];
-        unsigned int *bsdy = new unsigned int[n];
-        unsigned int *u = new unsigned int[k];
+        int *beasty = new int[n];
+        int *bsdy = new int[n];
+        int *u = new int[k];
+        int* synd = new int[n-k];
         unsigned long beast_op_add = 0, beast_op_cmp = 0;
         unsigned long bsd_op_add = 0, bsd_op_cmp = 0;
         int *ux = new int[n];
@@ -67,22 +69,11 @@ int main (int argc, char* argv[]){
             for (unsigned int i = 0; i < n; ++i) {
                 temp = 0;
                 for (unsigned int j = 0; j < k; ++j) {
-                    temp ^= g[i][j] & u[j];
+                    temp ^= g[j][i] & u[j];
                 }
                 ux[i] = (temp ? 1 : 0);
             }
-            int synd = 0;
-            for(unsigned int j=0; j<n-k; ++j)
-            {
-                for(unsigned int i=0; i<n; ++i)
-                {
-                    synd += (ux[i] ? h[j][i] : 0);
-                }
-            }
-            if(synd != 0)
-            {
-                std::cout<<"Error!";
-            }
+            
             apply_noise(ux, x, dev, n);
             beastdec.decode(x, beasty, delta);
             bsddec.decode(x, bsdy, delta);

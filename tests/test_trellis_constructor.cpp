@@ -127,7 +127,7 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) matrix is achieved")
             REQUIRE(answer[i][j] == matrix[i][j]);
         }
     }
-    WARN("Resulted matrix:\n" << matrix_to_sstream(k, n, matrix).str());
+    // WARN("Resulted matrix:\n" << matrix_to_sstream(k, n, matrix).str());
     for (unsigned int i = 0; i < k; ++i)
     {
         delete[] matrix[i];
@@ -145,7 +145,7 @@ TEST_CASE("CONSTRUCTOR: Ranges for RM(16, 5) matrix can be found")
 
     unsigned int *ranges = find_ranges(n, k, matrix);
 
-    WARN("Resulted matrix:\n" << matrix_to_sstream(k, n, matrix).str());
+    // WARN("Resulted matrix:\n" << matrix_to_sstream(k, n, matrix).str());
     REQUIRE(ranges[0] == 0);
     REQUIRE(ranges[1] == 8);
     REQUIRE(ranges[2] == 1);
@@ -171,14 +171,14 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved")
     unsigned int n, k;
     filename >> n >> k;
     int **matrix = readMatrix(filename, n, k);
-    WARN("Read matrix:\n" << matrix_to_sstream<int>(k, n, matrix).str());
+    // WARN("Read matrix:\n" << matrix_to_sstream<int>(k, n, matrix).str());
     for (unsigned int i = 0; i < k; ++i)
     {
         delete[] matrix[i];
     }
     delete[] matrix;
     matrix = readMatrix(filename, n, n-k);
-    WARN("Read matrix:\n" << matrix_to_sstream<int>(n-k, n, matrix).str());
+    // WARN("Read matrix:\n" << matrix_to_sstream<int>(n-k, n, matrix).str());
 
     int answer[11][16] = {
             {1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -195,7 +195,7 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved")
     };
     minspan_form(n, n-k, matrix);
 
-    WARN("Resulted matrix:\n" << matrix_to_sstream(n-k, n, matrix).str());
+    // WARN("Resulted matrix:\n" << matrix_to_sstream(n-k, n, matrix).str());
     for(unsigned int i=0; i<k; ++i)
     {
         for(unsigned int j=0; j<n; ++j)

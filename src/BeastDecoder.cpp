@@ -136,14 +136,18 @@ double BeastDecoder::decode(double *x, int *u, double delta)
         beta[i] = fabs(x[i]);
     }
 
-    // Emptying trees TODO: replace with memset
-    for(unsigned i=0; i<trellisSize; ++i)
-    {
-        fwdTree[i].tree = NIL;
-        fwdTreeBuffer[i].tree = NIL;
-        bkwTree[i].tree = NIL;
-        bkwTreeBuffer[i].tree = NIL;
-    }
+    // for(unsigned i=0; i<trellisSize; ++i)
+    // {
+    //     fwdTree[i].tree = NIL;
+    //     fwdTreeBuffer[i].tree = NIL;
+    //     bkwTree[i].tree = NIL;
+    //     bkwTreeBuffer[i].tree = NIL;
+    // }
+    // Emptying trees
+    memset(fwdTree, 0, trellisSize*sizeof(Node));
+    memset(fwdTreeBuffer, 0, trellisSize*sizeof(Node));
+    memset(bkwTree, 0, trellisSize*sizeof(Node));
+    memset(bkwTreeBuffer, 0, trellisSize*sizeof(Node));
     for(unsigned i=0; i<=n;++i)
     {
         for(unsigned j=0; j<trellisProfile[i]; ++j)

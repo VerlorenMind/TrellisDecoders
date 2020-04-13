@@ -30,7 +30,6 @@ protected:
     int *alpha;
     double *beta;
     Node** trellis;
-    // unsigned* offsets;
     unsigned trellisSize;
     uint64_t* trellisProfile;
     uint64_t maxLayerSize;

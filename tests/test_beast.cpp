@@ -98,6 +98,21 @@ TEST_CASE("BEAST: Can decode series of random words with some noise")
     test_decoder(1000, 1, 0.5, "../tests/test_matrix", "beast");
 }
 
+TEST_CASE("BEAST: Can decode BCH(7, 4, 3)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-7-4", "beast");
+}
+
+TEST_CASE("BEAST: Can decode BCH(7, 1, 5)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-7-1", "beast");
+}
+
+TEST_CASE("BEAST: Can decode EBCH(8, 4, 4)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-8-4", "beast");
+}
+
 TEST_CASE("BEAST: Can decode BCH(31, 16, 7)")
 {
     test_decoder(1000, 1, 0.5, "../data/bch-31-16-7", "beast");
@@ -108,25 +123,25 @@ TEST_CASE("BEAST: Can decode BCH(31, 21, 5)")
     test_decoder(1000, 1, 0.5, "../data/bch-31-21-5", "beast");
 }
 
-//TEST_CASE("BEAST: Can decode BCH(63, 7, 57)")
-//{
-//   test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "beast");
-//}
-//
-//TEST_CASE("BEAST: Can decode BCH(63, 16, 23)")
-//{
-//    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "beast");
-//}
-//
-//TEST_CASE("BEAST: Can decode BCH(63, 30, 13)")
-//{
-//    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "beast");
-//}
-//
-//TEST_CASE("BEAST: Can decode BCH(63, 39, 9)")
-//{
-//    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "beast");
-//}
+TEST_CASE("BEAST: Can decode BCH(63, 7, 57)")
+{
+   test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "beast");
+}
+
+TEST_CASE("BEAST: Can decode BCH(63, 16, 23)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "beast");
+}
+
+/*TEST_CASE("BEAST: Can decode BCH(63, 30, 13)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "beast");
+}
+
+TEST_CASE("BEAST: Can decode BCH(63, 39, 9)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "beast");
+}*/
 
 TEST_CASE("BEAST: Can decode RM(16, 5)")
 {
@@ -136,4 +151,24 @@ TEST_CASE("BEAST: Can decode RM(16, 5)")
 TEST_CASE("BEAST: Can decode RM(32, 6)")
 {
     test_decoder(1000, 1, 0.5, "../data/reed-muller-32-1", "beast");
+}
+
+TEST_CASE("BEAST: Can decode EBCH(32, 16)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-32-16", "beast");
+}
+
+TEST_CASE("BEAST: Can decode EBCH(32, 21)")
+{
+    test_decoder(1000, 1, 1, "../data/bch-32-21", "beast");
+}
+
+TEST_CASE("BEAST: Can decode EBCH(32, 16) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-32-16-bit-order", "beast");
+}
+
+TEST_CASE("BEAST: Can decode EBCH(32, 21) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-32-21-bit-order", "beast");
 }

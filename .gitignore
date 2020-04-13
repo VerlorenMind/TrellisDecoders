@@ -2,3 +2,4 @@
 cmake-*
 .DS_Store
 *_out
+*-out
