@@ -97,13 +97,13 @@ InsertionStatus BeastDecoder::insertNode(const Node& node)
             if(metric < min_metric)
             {
                 min_metric = metric;
-                min_candidate = candidate;
                 if(candidate == min_candidate)
                 {
                     status = REPLACED;
                 }
                 else
                 {
+                    min_candidate = candidate;
                     status = ENDED;
                 }
             }
@@ -268,6 +268,7 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                 switch(status)
                                 {
                                     case INSERTED:
+                                    case ENDED:
                                     {
                                         if (shouldBeContinued)
                                         {
@@ -342,8 +343,7 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                             }
                                         }
                                     }
-                                    case DISCARDED:
-                                    case ENDED: break;
+                                    case DISCARDED: break;
                                 }
                             }
                         }
@@ -367,6 +367,7 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                             switch(status)
                             {
                                 case INSERTED:
+                                case ENDED:
                                 {
                                     bkwTree[bkwTreeSize] = iter;
                                     ++bkwSize;
@@ -374,8 +375,7 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                     break;
                                 }
                                 case REPLACED:
-                                case DISCARDED:
-                                case ENDED: break;
+                                case DISCARDED: break;
                             }
                         }
                         ++op_cmp;

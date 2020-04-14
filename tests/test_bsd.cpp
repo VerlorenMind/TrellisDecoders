@@ -138,3 +138,37 @@ TEST_CASE("BSD: Can decode RM(32, 6)")
 {
     test_decoder(1000, 100, 0.5, "../data/reed-muller-32-1", "bsd");
 }
+TEST_CASE("BSD: Can decode EBCH(32, 16)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-32-16", "bsd");
+}
+
+TEST_CASE("BSD: Can decode EBCH(32, 21)")
+{
+    test_decoder(1000, 1, 0.5, "../data/bch-32-21", "bsd");
+}
+
+TEST_CASE("BSD: Can decode EBCH(32, 16) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-32-16-bit-order", "bsd");
+}
+
+TEST_CASE("BSD: Can decode EBCH(32, 21) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-32-21-bit-order", "bsd");
+}
+
+TEST_CASE("BSD: Can decode EBCH(64, 57) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-64-57-bit-order", "bsd");
+}
+
+TEST_CASE("BSD: Can decode EBCH(64, 51) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-64-51-bit-order", "bsd");
+}
+
+TEST_CASE("BSD: Can decode EBCH(64, 45) in SBO")
+{
+    test_decoder(1000, 100, 0.5, "../data/bch-64-45-bit-order", "bsd");
+}

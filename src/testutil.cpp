@@ -66,6 +66,21 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
             noise = rv(gen);
             x[i] = (ux[i] ? 1. : -1.) + noise;
         }
+        memset(synd, 0, (n-k)*sizeof(int));
+        int syndsum = 0;
+        for(unsigned int j=0; j<n-k; ++j)
+        {
+            for(unsigned int i=0; i<n; ++i)
+            {
+                synd[j] ^= ux[i] & h[j][i];
+            }
+        }
+        for(unsigned int j=0; j<n-k; ++j)
+        {
+            syndsum += synd[j];
+        }
+        INFO("Coded word syndrome: " << array_to_sstream<int>(n-k, synd).str());
+        REQUIRE(syndsum == 0);
         INFO("Coded word with noise: " << array_to_sstream<double>(n, x).str());
         metric = 0;
         for(unsigned int i=0; i<n; ++i)
@@ -105,7 +120,7 @@ void test_decoder(unsigned int tests, double stn, double delta, const char* file
             yint += y[i] << i;
         }
         memset(synd, 0, (n-k)*sizeof(int));
-        int syndsum = 0;
+        syndsum = 0;
         for(unsigned int j=0; j<n-k; ++j)
         {
             for(unsigned int i=0; i<n; ++i)
