@@ -7,6 +7,7 @@
 
 void generate_vector(unsigned int size, int* vector)
 {
+    // Generating random binary vector
     static std::default_random_engine generator;
     static std::uniform_int_distribution<int> distribution(0,1);
     for(unsigned int i=0; i<size; ++i)
@@ -17,6 +18,7 @@ void generate_vector(unsigned int size, int* vector)
 
 void apply_noise(const int* x, double* y, double dev, unsigned int len)
 {
+    // Applying AWGN with BPSK modulation
     unsigned int seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine gen(seed);
     std::normal_distribution<double> rv(0.0, dev);
@@ -56,7 +58,6 @@ int main (int argc, char* argv[]){
         int *beasty = new int[n];
         int *bsdy = new int[n];
         int *u = new int[k];
-        int* synd = new int[n-k];
         unsigned long beast_op_add = 0, beast_op_cmp = 0;
         unsigned long bsd_op_add = 0, bsd_op_cmp = 0;
         int *ux = new int[n];

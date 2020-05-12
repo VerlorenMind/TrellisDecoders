@@ -26,7 +26,6 @@ TrellisDecoder::~TrellisDecoder()
     delete[] ranges;
     delete[] alpha;
     delete[] beta;
-    // delete[] offsets;
     for(unsigned i=0; i<=n; ++i)
     {
         delete[] trellis[i];
