@@ -18,16 +18,21 @@ enum InsertionStatus
 class BeastDecoder : public TrellisDecoder {
 protected:
     double min_metric = -1;
+    double delta = 1;
     uint64_t min_candidate = 0;
-    Node *fwdTree, *fwdTreeBuffer, *bkwTree, *bkwTreeBuffer;
-    unsigned fwdTreeSize, fwdTreeBufferSize, bkwTreeSize, bkwTreeBufferSize;
-    InsertionStatus insertNode(const Node& node);
-    void init();
+    Node *fwd_tree, *fwd_tree_buffer, *bkw_tree, *bkw_tree_buffer;
+    unsigned fwd_tree_size, fwd_tree_buffer_size, bkw_tree_size, bkw_tree_buffer_size;
+    Node** trellis;
+
+    InsertionStatus insert_node(const Node& node);
+    void init(double delta);
 public:
-    BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename);
-    BeastDecoder(unsigned int n, unsigned int k, int **h);
-    double decode(double* x, int* u, double delta);
-    ~BeastDecoder();
+    BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename, double delta);
+    BeastDecoder(unsigned int n, unsigned int k, int **h, double delta);
+    double decode(double* x, int* u) override;
+    void set_delta(double d);
+    double get_delta();
+    ~BeastDecoder() override;
 };
 
 #endif //BEAST_BEASTDECODER_H

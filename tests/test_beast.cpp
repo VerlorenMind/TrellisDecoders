@@ -1,5 +1,8 @@
-#include "testutil.h"
-
+#include <fstream>
+#include <BeastDecoder.h>
+#include "Utility.h"
+#include "Simulation.h"
+#include "catch.hpp"
 const double EPSILON = 0.0000001;
 
 TEST_CASE("BEAST: Can decode zero word")
@@ -9,10 +12,10 @@ TEST_CASE("BEAST: Can decode zero word")
     filename >> n >> k;
     int **g;
     g = readMatrix(filename, n, k);
-    BeastDecoder dec(n, k, filename);
+    double delta = 0.5;
+    BeastDecoder dec(n, k, filename, delta);
     double* x = new double[n];
     int* u = new int[n];
-    double delta = 0.5;
     x[0] = -1.5;
     x[1] = -0.5;
     x[2] = -1.7;
@@ -20,7 +23,7 @@ TEST_CASE("BEAST: Can decode zero word")
     x[4] = -2.0;
     x[5] = -1.0;
 
-    dec.decode(x, u, delta);
+    dec.decode(x, u);
 
     for(unsigned int i=0; i<n; ++i)
     {
@@ -44,11 +47,11 @@ TEST_CASE("BEAST: Can decode non-zero word")
     unsigned int n, k;
     filename >> n >> k;
     g = readMatrix(filename, n, k);
-    BeastDecoder dec(n, k, filename);
+    double delta = 0.5;
+    BeastDecoder dec(n, k, filename, delta);
     double* x = new double[n];
     int* y = new int[n];
     int* u = new int[n];
-    double delta = 0.5;
     u[0] = 0;
     u[1] = 1;
     u[2] = 1;
@@ -65,7 +68,7 @@ TEST_CASE("BEAST: Can decode non-zero word")
 
     std::string codeword = "000000";
 
-    dec.decode(x, y, delta);
+    dec.decode(x, y);
 
     for(unsigned int j=0; j<n; ++j)
     {
@@ -88,102 +91,111 @@ TEST_CASE("BEAST: Can decode non-zero word")
     delete[] y;
 }
 
+void inline test_beast_decoder(int tests, double stn, double delta, const std::string &filename) {
+  std::ifstream in(filename);
+  Simulation sim(in, 0, tests);
+  sim.add_decoder(DecoderID::BEAST);
+  ((BeastDecoder*) sim.get_decoder(DecoderID::BEAST))->set_delta(delta);
+  sim.setSTN(stn);
+  sim.test_run();
+}
+
 TEST_CASE("BEAST: Can decode series of random words with minimal noise")
 {
-    test_decoder(1000, 100, 0.5, "../tests/test_matrix", "beast");
+  test_beast_decoder(1000, 100, 0.5, "../tests/test_matrix");
 }
 
 TEST_CASE("BEAST: Can decode series of random words with some noise")
 {
-    test_decoder(1000, 1, 0.5, "../tests/test_matrix", "beast");
+  test_beast_decoder(1000, 1, 0.5, "../tests/test_matrix");
 }
 
 TEST_CASE("BEAST: Can decode BCH(7, 4, 3)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-7-4", "beast");
+  test_beast_decoder(1000, 1, 0.5, "../data/bch-7-4");
 }
 
 TEST_CASE("BEAST: Can decode BCH(7, 1, 5)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-7-1", "beast");
+  test_beast_decoder(1000, 1, 0.5, "../data/bch-7-1");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(8, 4, 4)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-8-4", "beast");
+  test_beast_decoder(1000, 1, 0.5, "../data/bch-8-4");
 }
 
 TEST_CASE("BEAST: Can decode BCH(31, 16, 7)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-31-16-7", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-31-16-7");
 }
 
 TEST_CASE("BEAST: Can decode BCH(31, 21, 5)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-31-21-5", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-31-21-5");
 }
 
 TEST_CASE("BEAST: Can decode BCH(63, 7, 57)")
 {
-   test_decoder(1000, 5, 0.5, "../data/bch-63-7-57", "beast");
+   test_beast_decoder(1000, 5, 0.5, "../data/bch-63-7-57");
 }
 
 TEST_CASE("BEAST: Can decode BCH(63, 16, 23)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-63-16-23", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-63-16-23");
 }
 
 /*TEST_CASE("BEAST: Can decode BCH(63, 30, 13)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-63-30-13", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-63-30-13");
 }
 
 TEST_CASE("BEAST: Can decode BCH(63, 39, 9)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-63-39-9", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-63-39-9");
 }*/
 
 TEST_CASE("BEAST: Can decode RM(16, 5)")
 {
-    test_decoder(1000, 1, 0.5, "../data/reed-muller-16-1", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/reed-muller-16-1");
 }
 
 TEST_CASE("BEAST: Can decode RM(32, 6)")
 {
-    test_decoder(1000, 1, 0.5, "../data/reed-muller-32-1", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/reed-muller-32-1");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(32, 16)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-32-16", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-32-16");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(32, 21)")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-32-21", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-32-21");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(32, 16) in SBO")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-32-16-bit-order", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-32-16-bit-order");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(32, 21) in SBO")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-32-21-bit-order", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-32-21-bit-order");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(64, 57) in SBO")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-64-57-bit-order", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-64-57-bit-order");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(64, 51) in SBO")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-64-51-bit-order", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-64-51-bit-order");
 }
 
 TEST_CASE("BEAST: Can decode EBCH(64, 45) in SBO")
 {
-    test_decoder(1000, 1, 0.5, "../data/bch-64-45-bit-order", "beast");
+    test_beast_decoder(1000, 1, 0.5, "../data/bch-64-45-bit-order");
 }

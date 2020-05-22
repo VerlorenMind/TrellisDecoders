@@ -26,23 +26,13 @@ TrellisDecoder::~TrellisDecoder()
     delete[] ranges;
     delete[] alpha;
     delete[] beta;
-    for(unsigned i=0; i<=n; ++i)
-    {
-        delete[] trellis[i];
-    }
-    delete[] trellis;
-    delete[] trellisProfile;
+    delete[] trellis_profile;
 }
 
 double TrellisDecoder::metric(int x, unsigned int pos)
 {
     ++op_cmp;
     return (x == alpha[pos] ? 0 : beta[pos]);
-}
-
-double TrellisDecoder::decode(double *x, int *u, double delta)
-{
-    return 0;
 }
 
 void TrellisDecoder::init(unsigned int n, unsigned int k, int **checkmatrix)
@@ -58,16 +48,12 @@ void TrellisDecoder::init(unsigned int n, unsigned int k, int **checkmatrix)
         h[i] = new int[n];
         memcpy(h[i], checkmatrix[i], n*sizeof(int));
     }
-    std::string tempmatr = matrix_to_sstream(k, n, h).str();
-    minspan_form(n, k, h);
-    tempmatr = matrix_to_sstream(k, n, h).str();
-    ranges = find_ranges(n, k, h);
-    trellis = new Node *[n + 1];
-    trellisProfile = new uint64_t[n + 1];
+  minspanForm(n, k, h);
+    ranges = findRanges(n, k, h);
+  trellis_profile = new uint64_t[n + 1];
     unsigned pow;
-    trellis[0] = new Node[1];
-    trellisProfile[0] = 1;
-    trellisSize = 1;
+  trellis_profile[0] = 1;
+  trellis_size = 1;
     for (unsigned i = 0; i < n; ++i)
     {
         pow = 0;
@@ -78,13 +64,7 @@ void TrellisDecoder::init(unsigned int n, unsigned int k, int **checkmatrix)
                 ++pow;
             }
         }
-        trellisProfile[i + 1] = uint64_t(1) << pow;
-        trellisSize += trellisProfile[i + 1];
-        trellis[i + 1] = new Node[trellisProfile[i + 1]];
-        for (unsigned j = 0; j < trellisProfile[i]; ++j)
-        {
-            trellis[i][j].tree = NIL;
-        }
+      trellis_profile[i + 1] = uint64_t(1) << pow;
+      trellis_size += trellis_profile[i + 1];
     }
-    maxLayerSize = k < n-k ? (uint64_t(2)<<k) : (uint64_t(2)<<(n-k));
 }

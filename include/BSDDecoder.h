@@ -3,18 +3,16 @@
 
 #include "TrellisDecoder.h"
 
-class BSDDecoder : public TrellisDecoder
-{
-protected:
-    Node* fwdTree;
-    Node* bkwTree;
+class BSDDecoder : public TrellisDecoder {
+ protected:
+  Node *fwd_tree;
+  Node *bkw_tree;
 
-    double min_metric;
-    void bubbleInsert(Node* array, unsigned start, unsigned end, Node elem);
-public:
-    BSDDecoder(unsigned int n, unsigned int k, std::ifstream& filename);
-    BSDDecoder(unsigned int n, unsigned int k, int **h);
-    ~BSDDecoder();
-    double decode(double *x, int *u, double delta);
+  void bubble_insert(Node *array, unsigned start, unsigned end, Node elem);
+ public:
+  BSDDecoder(unsigned int n, unsigned int k, std::ifstream &filename);
+  BSDDecoder(unsigned int n, unsigned int k, int **h);
+  ~BSDDecoder() override;
+  double decode(double *x, int *u) override;
 };
 #endif //BEAST_BSDDECODER_H

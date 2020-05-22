@@ -5,37 +5,55 @@
 
 #include "BeastDecoder.h"
 
-void BeastDecoder::init()
+void BeastDecoder::init(double delta)
 {
-    fwdTree = new Node[trellisSize];
-    fwdTreeSize = 0;
-    fwdTreeBuffer = new Node[trellisSize];
-    fwdTreeBufferSize = 0;
-    bkwTree = new Node[trellisSize];
-    bkwTreeSize = 0;
-    bkwTreeBuffer = new Node[trellisSize];
-    bkwTreeBufferSize = 0;
+  id = DecoderID::BEAST;
+  this->delta = delta;
+  fwd_tree = new Node[trellis_size];
+  fwd_tree_size = 0;
+  fwd_tree_buffer = new Node[trellis_size];
+  fwd_tree_buffer_size = 0;
+  bkw_tree = new Node[trellis_size];
+  bkw_tree_size = 0;
+  bkw_tree_buffer = new Node[trellis_size];
+  bkw_tree_buffer_size = 0;
+
+    trellis = new Node *[n + 1];
+    trellis[0] = new Node[1];
+    for (unsigned i = 0; i < n; ++i)
+    {
+        trellis[i + 1] = new Node[trellis_profile[i + 1]];
+        for (unsigned j = 0; j < trellis_profile[i]; ++j)
+        {
+            trellis[i][j].tree = NIL;
+        }
+    }
 }
 
-BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename) : TrellisDecoder(n, k, filename)
+BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, std::ifstream& filename, double delta) : TrellisDecoder(n, k, filename)
 {
-    init();
+    init(delta);
 }
 
-BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, int **h) : TrellisDecoder(n, k, h)
+BeastDecoder::BeastDecoder(unsigned int n, unsigned int k, int **h, double delta) : TrellisDecoder(n, k, h)
 {
-    init();
+    init(delta);
 }
 
 BeastDecoder::~BeastDecoder()
 {
-    delete[] fwdTree;
-    delete[] fwdTreeBuffer;
-    delete[] bkwTree;
-    delete[] bkwTreeBuffer;
+    delete[] fwd_tree;
+    delete[] fwd_tree_buffer;
+    delete[] bkw_tree;
+    delete[] bkw_tree_buffer;
+    for(unsigned i=0; i<=n; ++i)
+    {
+        delete[] trellis[i];
+    }
+    delete[] trellis;
 }
 
-InsertionStatus BeastDecoder::insertNode(const Node& node)
+InsertionStatus BeastDecoder::insert_node(const Node& node)
 {
     InsertionStatus status;
     uint64_t trellisNum = 0;
@@ -63,7 +81,7 @@ InsertionStatus BeastDecoder::insertNode(const Node& node)
             }
         }
     }
-    assert(trellisNum < trellisProfile[node.layer]);
+    assert(trellisNum < trellis_profile[node.layer]);
     if(trellis[node.layer][trellisNum].tree == NIL) {
         trellis[node.layer][trellisNum] = node;
         status = INSERTED;
@@ -124,7 +142,7 @@ InsertionStatus BeastDecoder::insertNode(const Node& node)
     return status;
 }
 
-double BeastDecoder::decode(double *x, int *u, double delta)
+double BeastDecoder::decode(double *x, int *u)
 {
     op_add = 0;
     op_cmp = 0;
@@ -136,21 +154,14 @@ double BeastDecoder::decode(double *x, int *u, double delta)
         beta[i] = fabs(x[i]);
     }
 
-    // for(unsigned i=0; i<trellisSize; ++i)
-    // {
-    //     fwdTree[i].tree = NIL;
-    //     fwdTreeBuffer[i].tree = NIL;
-    //     bkwTree[i].tree = NIL;
-    //     bkwTreeBuffer[i].tree = NIL;
-    // }
     // Emptying trees
-    memset(fwdTree, 0, trellisSize*sizeof(Node));
-    memset(fwdTreeBuffer, 0, trellisSize*sizeof(Node));
-    memset(bkwTree, 0, trellisSize*sizeof(Node));
-    memset(bkwTreeBuffer, 0, trellisSize*sizeof(Node));
+    memset(fwd_tree, 0, trellis_size*sizeof(Node));
+    memset(fwd_tree_buffer, 0, trellis_size*sizeof(Node));
+    memset(bkw_tree, 0, trellis_size*sizeof(Node));
+    memset(bkw_tree_buffer, 0, trellis_size*sizeof(Node));
     for(unsigned i=0; i<=n;++i)
     {
-        for(unsigned j=0; j<trellisProfile[i]; ++j)
+        for(unsigned j=0; j<trellis_profile[i]; ++j)
         {
             trellis[i][j].tree = NIL;
         }
@@ -163,17 +174,17 @@ double BeastDecoder::decode(double *x, int *u, double delta)
     temp.number = 0;
     temp.metric = 0;
     temp.path = 0;
-    temp.pathAvalaible[0] = true;
-    temp.pathAvalaible[1] = true;
-    fwdTree[0] = temp;
-    fwdTreeSize = 1;
+    temp.path_avalaible[0] = true;
+    temp.path_avalaible[1] = true;
+  fwd_tree[0] = temp;
+  fwd_tree_size = 1;
     trellis[0][0] = temp;
     temp.tree = BKW;
     temp.layer = n;
-    bkwTree[0] = temp;
-    bkwTreeSize = 1;
+  bkw_tree[0] = temp;
+  bkw_tree_size = 1;
     trellis[n][0] = temp;
-    fwdTreeBufferSize = bkwTreeBufferSize = 0;
+  fwd_tree_buffer_size = bkw_tree_buffer_size = 0;
 
     uint64_t layerMask; // a mask that denotes zero bit-positions on a layer
     double fwdMetricBound = 0, bkwMetricBound = 0; // target metric bound
@@ -205,27 +216,27 @@ double BeastDecoder::decode(double *x, int *u, double delta)
         // Growing forward tree
         if(metricChanged & 1) {
             unsigned count = 0, index = 0;
-            if(fwdTreeBufferSize > 0) {
-                fwdTreeSize = 0;
-                while (index < trellisSize && count < fwdTreeBufferSize) {
-                    Node iter = fwdTreeBuffer[index];
+            if(fwd_tree_buffer_size > 0) {
+              fwd_tree_size = 0;
+                while (index < trellis_size && count < fwd_tree_buffer_size) {
+                    Node iter = fwd_tree_buffer[index];
                     if (iter.tree!=NIL) {
                         ++count;
                         if (iter.metric<fwdMetricBound) {
-                            fwdTree[fwdTreeSize] = iter;
-                            ++fwdTreeSize;
-                            fwdTreeBuffer[index].tree = NIL;
+                          fwd_tree[fwd_tree_size] = iter;
+                            ++fwd_tree_size;
+                          fwd_tree_buffer[index].tree = NIL;
                         }
                         ++op_cmp;
                     }
                     ++index;
                 }
-                fwdTreeBufferSize = fwdTreeBufferSize - fwdTreeSize;
+              fwd_tree_buffer_size = fwd_tree_buffer_size - fwd_tree_size;
             }
             count = index = 0;
-            while(index < trellisSize && count < fwdTreeSize) {
-                Node iter = fwdTree[index];
-                fwdTree[index].tree = NIL;
+            while(index < trellis_size && count < fwd_tree_size) {
+                Node iter = fwd_tree[index];
+              fwd_tree[index].tree = NIL;
                 ++index;
                 if(iter.tree != NIL) {
                     ++count;
@@ -240,7 +251,7 @@ double BeastDecoder::decode(double *x, int *u, double delta)
 
                         // Checking avalaible continuations for a node
                         if (iter.number & layerMask) {
-                            iter.pathAvalaible[0] = false;
+                            iter.path_avalaible[0] = false;
                         }
                         uint64_t tempnum = iter.number;
                         for(unsigned int i=0; i<k; ++i)
@@ -248,21 +259,21 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                             tempnum ^= (uint64_t(h[i][iter.layer]) << i);
                         }
                         if (tempnum & layerMask) {
-                            iter.pathAvalaible[1] = false;
+                            iter.path_avalaible[1] = false;
                         }
 
                         // Expanding tree
                         for (int k = 0; k<2; ++k) {
-                            if (iter.pathAvalaible[k]) {
+                            if (iter.path_avalaible[k]) {
                                 temp.tree = iter.tree;
                                 temp.layer = iter.layer+1;
                                 temp.number = k ? tempnum : iter.number;
                                 temp.metric = iter.metric+metric(k, iter.layer);
                                 ++op_add;
                                 temp.path = k ? iter.path ^ (uint64_t(1) << iter.layer) : iter.path;
-                                temp.pathAvalaible[0] = true;
-                                temp.pathAvalaible[1] = true;
-                                InsertionStatus status = insertNode(temp);
+                                temp.path_avalaible[0] = true;
+                                temp.path_avalaible[1] = true;
+                                InsertionStatus status = insert_node(temp);
                                 bool shouldBeContinued = temp.metric < fwdMetricBound;
                                 ++op_cmp;
                                 switch(status)
@@ -272,18 +283,18 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                     {
                                         if (shouldBeContinued)
                                         {
-                                            assert(fwdTreeSize < trellisSize);
-                                            fwdTree[fwdTreeSize] = temp;
-                                            ++fwdTreeSize;
+                                            assert(fwd_tree_size < trellis_size);
+                                          fwd_tree[fwd_tree_size] = temp;
+                                            ++fwd_tree_size;
                                         } else
                                         {
                                             unsigned bufferIndex = 0;
-                                            while (fwdTreeBuffer[bufferIndex].tree != NIL)
+                                            while (fwd_tree_buffer[bufferIndex].tree != NIL)
                                             {
                                                 ++bufferIndex;
                                             }
-                                            fwdTreeBuffer[bufferIndex] = temp;
-                                            ++fwdTreeBufferSize;
+                                          fwd_tree_buffer[bufferIndex] = temp;
+                                            ++fwd_tree_buffer_size;
                                         }
                                         ++fwdSize;
                                         break;
@@ -294,15 +305,15 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                         {
                                             unsigned int newIndex = index, newCount = count;
                                             bool isInQueue = false;
-                                            while(newIndex < trellisSize && newCount < fwdTreeSize)
+                                            while(newIndex < trellis_size && newCount < fwd_tree_size)
                                             {
-                                                Node newIter = fwdTree[newIndex];
+                                                Node newIter = fwd_tree[newIndex];
                                                 if (newIter.tree != NIL)
                                                 {
                                                     ++newCount;
                                                     if(newIter.layer == temp.layer && newIter.number == temp.number)
                                                     {
-                                                        fwdTree[newIndex] = temp;
+                                                      fwd_tree[newIndex] = temp;
                                                         isInQueue = true;
                                                         break;
                                                     }
@@ -311,18 +322,18 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                             }
                                             if(!isInQueue)
                                             {
-                                                assert(fwdTreeSize < trellisSize);
-                                                fwdTree[fwdTreeSize] = temp;
-                                                ++fwdTreeSize;
+                                                assert(fwd_tree_size < trellis_size);
+                                              fwd_tree[fwd_tree_size] = temp;
+                                                ++fwd_tree_size;
                                             }
                                         }
                                         unsigned int newIndex = 0;
                                         unsigned int newCount = 0;
-                                        if(fwdTreeBufferSize > 0)
+                                        if(fwd_tree_buffer_size > 0)
                                         {
-                                            while (newIndex < trellisSize && newCount < fwdTreeBufferSize)
+                                            while (newIndex < trellis_size && newCount < fwd_tree_buffer_size)
                                             {
-                                                Node newIter = fwdTreeBuffer[newIndex];
+                                                Node newIter = fwd_tree_buffer[newIndex];
                                                 if (newIter.tree != NIL)
                                                 {
                                                     ++newCount;
@@ -330,12 +341,12 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                                     {
                                                         if (shouldBeContinued)
                                                         {
-                                                            fwdTreeBuffer[newIndex].tree = NIL;
-                                                            --fwdTreeBufferSize;
+                                                          fwd_tree_buffer[newIndex].tree = NIL;
+                                                            --fwd_tree_buffer_size;
                                                         }
                                                         else
                                                         {
-                                                            fwdTreeBuffer[newIndex] = temp;
+                                                          fwd_tree_buffer[newIndex] = temp;
                                                         }
                                                     }
                                                 }
@@ -355,23 +366,23 @@ double BeastDecoder::decode(double *x, int *u, double delta)
         if(metricChanged & 2)
         {
             unsigned count = 0, index = 0;
-            if(bkwTreeBufferSize > 0) {
-                bkwTreeSize = 0;
-                while (index < trellisSize && count < bkwTreeBufferSize) {
-                    Node iter = bkwTreeBuffer[index];
+            if(bkw_tree_buffer_size > 0) {
+              bkw_tree_size = 0;
+                while (index < trellis_size && count < bkw_tree_buffer_size) {
+                    Node iter = bkw_tree_buffer[index];
                     if (iter.tree!=NIL) {
                         ++count;
                         if (iter.metric<bkwMetricBound) {
-                            bkwTreeBuffer[index].tree = NIL;
-                            InsertionStatus status = insertNode(iter);
+                          bkw_tree_buffer[index].tree = NIL;
+                            InsertionStatus status = insert_node(iter);
                             switch(status)
                             {
                                 case INSERTED:
                                 case ENDED:
                                 {
-                                    bkwTree[bkwTreeSize] = iter;
+                                  bkw_tree[bkw_tree_size] = iter;
                                     ++bkwSize;
-                                    ++bkwTreeSize;
+                                    ++bkw_tree_size;
                                     break;
                                 }
                                 case REPLACED:
@@ -382,12 +393,12 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                     }
                     ++index;
                 }
-                bkwTreeBufferSize = bkwTreeBufferSize - bkwTreeSize;
+              bkw_tree_buffer_size = bkw_tree_buffer_size - bkw_tree_size;
             }
             count = index = 0;
-            while(index < trellisSize && count < bkwTreeSize) {
-                Node iter = bkwTree[index];
-                bkwTree[index].tree = NIL;
+            while(index < trellis_size && count < bkw_tree_size) {
+                Node iter = bkw_tree[index];
+              bkw_tree[index].tree = NIL;
                 ++index;
                 if(iter.tree != NIL) {
                     ++count;
@@ -401,7 +412,7 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                         }
 
                         if (iter.number & layerMask) {
-                            iter.pathAvalaible[0] = false;
+                            iter.path_avalaible[0] = false;
                         }
                         uint64_t tempnum = iter.number;
                         for(unsigned int i=0; i<k; ++i)
@@ -409,11 +420,11 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                             tempnum ^= (uint64_t(h[i][iter.layer-1]) << i);
                         }
                         if (tempnum & layerMask) {
-                            iter.pathAvalaible[1] = false;
+                            iter.path_avalaible[1] = false;
                         }
                         for (int k = 0; k<2; ++k) {
                             double calcMetric = metric(k, iter.layer-1);
-                            if (iter.layer>0 && iter.pathAvalaible[k])
+                            if (iter.layer>0 && iter.path_avalaible[k])
                             {
                                 temp.tree = iter.tree;
                                 temp.layer = iter.layer - 1;
@@ -421,21 +432,21 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                 temp.metric = iter.metric + calcMetric;
                                 ++op_add;
                                 temp.path = k ? iter.path ^ (uint64_t(1) << (iter.layer - 1)) : iter.path;
-                                temp.pathAvalaible[0] = true;
-                                temp.pathAvalaible[1] = true;
+                                temp.path_avalaible[0] = true;
+                                temp.path_avalaible[1] = true;
                                 bool shouldBeContinued = temp.metric < bkwMetricBound;
                                 ++op_cmp;
                                 if (shouldBeContinued)
                                 {
-                                    InsertionStatus status = insertNode(temp);
+                                    InsertionStatus status = insert_node(temp);
                                     switch (status)
                                     {
                                         case INSERTED:
                                         case ENDED:
                                         {
-                                            assert(bkwTreeSize < trellisSize);
-                                            bkwTree[bkwTreeSize] = temp;
-                                            ++bkwTreeSize;
+                                            assert(bkw_tree_size < trellis_size);
+                                          bkw_tree[bkw_tree_size] = temp;
+                                            ++bkw_tree_size;
                                             ++bkwSize;
                                             break;
                                         }
@@ -443,15 +454,15 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                         {
                                             unsigned int newIndex = index, newCount = count;
                                             bool isInQueue = false;
-                                            while (newIndex < trellisSize && newCount < bkwTreeSize)
+                                            while (newIndex < trellis_size && newCount < bkw_tree_size)
                                             {
-                                                Node newIter = bkwTree[newIndex];
+                                                Node newIter = bkw_tree[newIndex];
                                                 if (newIter.tree != NIL)
                                                 {
                                                     ++newCount;
                                                     if (newIter.layer == temp.layer && newIter.number == temp.number)
                                                     {
-                                                        bkwTree[newIndex] = temp;
+                                                      bkw_tree[newIndex] = temp;
                                                         isInQueue = true;
                                                         break;
                                                     }
@@ -460,25 +471,25 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                             }
                                             if (!isInQueue)
                                             {
-                                                assert(bkwTreeSize < trellisSize);
-                                                bkwTree[bkwTreeSize] = temp;
-                                                ++bkwTreeSize;
+                                                assert(bkw_tree_size < trellis_size);
+                                              bkw_tree[bkw_tree_size] = temp;
+                                                ++bkw_tree_size;
                                             }
                                             newIndex = 0;
                                             newCount = 0;
-                                            if (bkwTreeBufferSize > 0)
+                                            if (bkw_tree_buffer_size > 0)
                                             {
-                                                while (newIndex < trellisSize && newCount < bkwTreeBufferSize)
+                                                while (newIndex < trellis_size && newCount < bkw_tree_buffer_size)
                                                 {
-                                                    Node newIter = bkwTreeBuffer[newIndex];
+                                                    Node newIter = bkw_tree_buffer[newIndex];
                                                     if (newIter.tree != NIL)
                                                     {
                                                         ++newCount;
                                                         if (newIter.layer == temp.layer &&
                                                             newIter.number == temp.number)
                                                         {
-                                                            bkwTreeBuffer[newIndex].tree = NIL;
-                                                            --bkwTreeBufferSize;
+                                                          bkw_tree_buffer[newIndex].tree = NIL;
+                                                            --bkw_tree_buffer_size;
                                                             break;
                                                         }
                                                     }
@@ -493,12 +504,12 @@ double BeastDecoder::decode(double *x, int *u, double delta)
                                 } else
                                 {
                                     unsigned bufferIndex = 0;
-                                    while (bkwTreeBuffer[bufferIndex].tree != NIL)
+                                    while (bkw_tree_buffer[bufferIndex].tree != NIL)
                                     {
                                         ++bufferIndex;
                                     }
-                                    bkwTreeBuffer[bufferIndex] = temp;
-                                    ++bkwTreeBufferSize;
+                                  bkw_tree_buffer[bufferIndex] = temp;
+                                    ++bkw_tree_buffer_size;
                                 }
                             }
                         }
@@ -523,4 +534,10 @@ double BeastDecoder::decode(double *x, int *u, double delta)
     }
 
     return min_metric;
+}
+void BeastDecoder::set_delta(double d) {
+  delta = d;
+}
+double BeastDecoder::get_delta() {
+  return delta;
 }
