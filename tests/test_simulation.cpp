@@ -5,8 +5,7 @@
 
 const double EPSILON = 0.0000001;
 
-TEST_CASE("SIM: Can create empty simulation")
-{
+TEST_CASE("SIM: Can create empty simulation") {
   std::ifstream in("../tests/test_matrix");
   Simulation sim(in, 10, 10, 0);
 
@@ -18,25 +17,22 @@ TEST_CASE("SIM: Can create empty simulation")
   REQUIRE(sim.get_decoders().empty());
 }
 
-TEST_CASE("SIM: Can add decoder to the simulation")
-{
+TEST_CASE("SIM: Can add decoder to the simulation") {
   std::ifstream in("../tests/test_matrix");
   Simulation sim(in, 10, 10, 0);
   sim.add_decoder(DecoderID::BSD);
-  SoftDecoder* dec = sim.get_decoder(DecoderID::BSD);
+  SoftDecoder *dec = sim.get_decoder(DecoderID::BSD);
 
   REQUIRE(dec != nullptr);
   REQUIRE(sim.get_decoders().size() == 1);
 }
 
-TEST_CASE("SIM: Can read spec file")
-{
+TEST_CASE("SIM: Can read spec file") {
   std::ifstream code_in("../tests/test_matrix");
   std::ifstream run_in("../data/run_all");
   Simulation sim(code_in, run_in);
-  SoftDecoder* beast = sim.get_decoder(DecoderID::BEAST);
-  SoftDecoder* bsd = sim.get_decoder(DecoderID::BSD);
-
+  SoftDecoder *beast = sim.get_decoder(DecoderID::BEAST);
+  SoftDecoder *bsd = sim.get_decoder(DecoderID::BSD);
 
   REQUIRE(sim.get_max_errors() == 1000);
   REQUIRE(sim.get_max_iterations() == 1000000);
@@ -47,8 +43,7 @@ TEST_CASE("SIM: Can read spec file")
   REQUIRE(temp < EPSILON);
 }
 
-TEST_CASE("SIM: Can launch a simple run")
-{
+TEST_CASE("SIM: Can launch a simple run") {
   std::ifstream in("../tests/test_matrix");
   Simulation sim(in, 10, 10, 0);
   sim.add_decoder(DecoderID::BSD);

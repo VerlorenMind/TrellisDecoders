@@ -10,10 +10,10 @@ TEST_CASE("UTIL: Test quicksort") {
   unsigned int ops = quicksort(9, x, perm1);
 
   REQUIRE(ops > 0);
-  for(unsigned int i=0; i<9; ++i) {
+  for (unsigned int i = 0; i < 9; ++i) {
     REQUIRE(perm[i] == perm1[i]);
-    if(i > 0) {
-      REQUIRE(x[i] < x[i-1]);
+    if (i > 0) {
+      REQUIRE(x[i] < x[i - 1]);
     }
   }
 }

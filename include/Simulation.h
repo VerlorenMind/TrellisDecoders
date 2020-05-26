@@ -13,18 +13,18 @@ class Simulation {
   unsigned int max_iterations, max_errors;
   int **g, **h;
   double dev, stn;
-  double* x;
-  int* y;
-  int* u;
-  int* ux;
+  double *x;
+  int *y;
+  int *u;
+  int *ux;
   int *synd;
   std::string code_name;
-  std::vector<SoftDecoder*> decoders;
+  std::vector<SoftDecoder *> decoders;
   std::default_random_engine gen;
   void generate_information_vector();
   void encode();
   void apply_noise();
-  int calculate_syndrome(const int* vec);
+  int calculate_syndrome(const int *vec);
   bool check_decoded_word();
  public:
   std::vector<long> errors_by_decoder;
@@ -33,11 +33,11 @@ class Simulation {
   explicit Simulation(std::ifstream &input_file, unsigned int max_errors = 0,
                       unsigned int max_iterations = 0, unsigned int seed = 123);
   Simulation(std::ifstream &input_file, std::ifstream &run_config);
-  Simulation(std::ifstream &input_file, double stn, SoftDecoder* decoder, unsigned int max_errors,
+  Simulation(std::ifstream &input_file, double stn, SoftDecoder *decoder, unsigned int max_errors,
              unsigned int max_iterations, unsigned int seed = 123);
   ~Simulation();
   void run();
-  SoftDecoder* get_decoder(DecoderID id);
+  SoftDecoder *get_decoder(DecoderID id);
   void add_decoder(DecoderID id);
   void setSTN(double stn);
 #ifdef CATCH_TESTING
@@ -53,5 +53,5 @@ class Simulation {
   std::string get_code_name();
 };
 
-void generate_vector(unsigned int size, int* vector);
+void generate_vector(unsigned int size, int *vector);
 #endif //BEAST_SIMULATION_H

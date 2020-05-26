@@ -4,15 +4,16 @@
 #include <Utility.h>
 #include <cmath>
 
-OrderedStatisticsDecoder::OrderedStatisticsDecoder(unsigned int n, unsigned int k, int **gen_matrix, int w) : SoftDecoder(n, k) {
+OrderedStatisticsDecoder::OrderedStatisticsDecoder(unsigned int n, unsigned int k, int **gen_matrix, int w)
+    : SoftDecoder(n, k) {
   this->w = w;
   id = DecoderID::ORDERED_STATISTICS;
-  g = new int*[k];
-  g_buf = new int*[k];
-  for(unsigned int i=0; i<k; ++i) {
+  g = new int *[k];
+  g_buf = new int *[k];
+  for (unsigned int i = 0; i < k; ++i) {
     g[i] = new int[n];
     g_buf[i] = new int[n];
-    memcpy(g[i], gen_matrix[i], n*sizeof(int));
+    memcpy(g[i], gen_matrix[i], n * sizeof(int));
   }
   u_temp = new int[k];
   c_temp = new int[n];
@@ -20,7 +21,7 @@ OrderedStatisticsDecoder::OrderedStatisticsDecoder(unsigned int n, unsigned int 
 }
 
 OrderedStatisticsDecoder::~OrderedStatisticsDecoder() {
-  for(unsigned int i=0; i<k; ++i) {
+  for (unsigned int i = 0; i < k; ++i) {
     delete[] g[i];
     delete[] g_buf[i];
   }
@@ -37,30 +38,26 @@ double OrderedStatisticsDecoder::decode(double *x, int *u) {
   for (unsigned int i = 0; i < n; ++i) {
     beta[i] = fabs(x[i]);
   }
-  std::string temp;
-  temp = matrixToSstream(k, n, g).str();
   std::vector<int> permutation;
   op_cmp += quicksort(n, beta, permutation);
-  for(unsigned int i=0; i<n; ++i) {
-    for(unsigned int j=0; j<k; ++j) {
+  for (unsigned int i = 0; i < n; ++i) {
+    for (unsigned int j = 0; j < k; ++j) {
       g_buf[j][i] = g[j][permutation[i]];
     }
   }
-  temp = matrixToSstream(k, n, g_buf).str();
-  for(unsigned int i=0; i<n; ++i) {
+  for (unsigned int i = 0; i < n; ++i) {
     alpha[i] = x[permutation[i]] < 0 ? 0 : 1;
     ++op_cmp;
   }
-  // Making the matrix diagonal in k linearly independent columns and storing the indices of these columns
+  // Making the matrix diagonal in k first linearly independent columns and storing the indices of these columns
   echelonForm(n, k, g_buf);
-  temp = matrixToSstream(k, n, g_buf).str();
   std::vector<int> ind(k);
   int r = 0;
   int c = 0;
   while (r < k && c < n) {
-    if(g_buf[r][c]) {
-      for(int i=r-1; i>=0; --i) {
-        if(g_buf[i][c]) {
+    if (g_buf[r][c]) {
+      for (int i = r - 1; i >= 0; --i) {
+        if (g_buf[i][c]) {
           for (unsigned int j = 0; j < n; ++j) {
             g_buf[i][j] ^= g_buf[r][j];
           }
@@ -69,47 +66,44 @@ double OrderedStatisticsDecoder::decode(double *x, int *u) {
       ind[r] = c;
       ++r;
       ++c;
-    }
-    else {
+    } else {
       ++c;
     }
   }
-  temp = matrixToSstream(k, n, g_buf).str();
   double min_metric = -1;
-  for(unsigned i=0; i<=w; ++i) {
+  for (unsigned i = 0; i <= w; ++i) {
     std::vector<std::vector<int>> combs = combinations(k, i);
-    for(const auto &comb : combs) {
-      for(unsigned int j=0; j<k; ++j) {
+    for (const auto &comb : combs) {
+      for (unsigned int j = 0; j < k; ++j) {
         u_temp[j] = alpha[ind[j]];
       }
-      for(auto pos : comb) {
+      for (auto pos : comb) {
         u_temp[pos] ^= 1;
       }
-      memset(c_temp, 0, n*sizeof(int));
-      for(unsigned int j=0; j<n; ++j) {
-        for(unsigned int l=0; l<k; ++l) {
+      memset(c_temp, 0, n * sizeof(int));
+      for (unsigned int j = 0; j < n; ++j) {
+        for (unsigned int l = 0; l < k; ++l) {
           c_temp[j] ^= u_temp[l] & g_buf[l][j];
         }
       }
       double metr = 0;
-      for(unsigned int i=0; i<n; ++i) {
+      for (unsigned int i = 0; i < n; ++i) {
         metr += metric(c_temp[i], i);
         ++op_add;
       }
-      if(min_metric != -1) {
-        if(min_metric > metr) {
+      if (min_metric != -1) {
+        if (min_metric > metr) {
           min_metric = metr;
-          memcpy(c_best, c_temp, n*sizeof(int));
+          memcpy(c_best, c_temp, n * sizeof(int));
         }
         ++op_cmp;
-      }
-      else {
+      } else {
         min_metric = metr;
-        memcpy(c_best, c_temp, n*sizeof(int));
+        memcpy(c_best, c_temp, n * sizeof(int));
       }
     }
   }
-  for(unsigned int i=0; i<n; ++i) {
+  for (unsigned int i = 0; i < n; ++i) {
     u[permutation[i]] = c_best[i];
   }
   return min_metric;

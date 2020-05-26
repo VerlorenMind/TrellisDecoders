@@ -32,9 +32,9 @@ void minspanForm(unsigned int n, unsigned int k, int **a);
 
 unsigned int *findRanges(unsigned int n, unsigned int k, int **a);
 
-unsigned int quicksort(unsigned int n, double* x, std::vector<int> &permutation);
+unsigned int quicksort(unsigned int n, double *x, std::vector<int> &permutation);
 
-void echelonForm(unsigned int n, unsigned int k, int**x);
+void echelonForm(unsigned int n, unsigned int k, int **x);
 
 std::vector<std::vector<int>> combinations(unsigned int n, unsigned int k);
 
