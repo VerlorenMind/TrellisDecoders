@@ -23,7 +23,7 @@ TEST_CASE("SIM: Can add decoder to the simulation")
   std::ifstream in("../tests/test_matrix");
   Simulation sim(in, 10, 10, 0);
   sim.add_decoder(DecoderID::BSD);
-  ISoftDecoder* dec = sim.get_decoder(DecoderID::BSD);
+  SoftDecoder* dec = sim.get_decoder(DecoderID::BSD);
 
   REQUIRE(dec != nullptr);
   REQUIRE(sim.get_decoders().size() == 1);
@@ -34,8 +34,8 @@ TEST_CASE("SIM: Can read spec file")
   std::ifstream code_in("../tests/test_matrix");
   std::ifstream run_in("../data/run_all");
   Simulation sim(code_in, run_in);
-  ISoftDecoder* beast = sim.get_decoder(DecoderID::BEAST);
-  ISoftDecoder* bsd = sim.get_decoder(DecoderID::BSD);
+  SoftDecoder* beast = sim.get_decoder(DecoderID::BEAST);
+  SoftDecoder* bsd = sim.get_decoder(DecoderID::BSD);
 
 
   REQUIRE(sim.get_max_errors() == 1000);

@@ -109,4 +109,103 @@ unsigned int *findRanges(unsigned int n, unsigned int k, int **a) {
   return ranges;
 }
 
+unsigned int op_cmp;
+
+unsigned int partition(int lo, int hi, double *x, std::vector<int> &permutation) {
+  double piv = x[hi];
+  unsigned int i = lo;
+  for (unsigned int j = lo; j <= hi; ++j) {
+    if (x[j] > piv) {
+      std::swap(x[i], x[j]);
+      std::swap(permutation[i], permutation[j]);
+      ++i;
+    }
+    ++op_cmp;
+  }
+  std::swap(x[i], x[hi]);
+  std::swap(permutation[i], permutation[hi]);
+  return i;
+}
+
+void quicksort(int lo, int hi, double *x, std::vector<int> &permutation) {
+  if (lo < hi) {
+    unsigned int p = partition(lo, hi, x, permutation);
+    quicksort(lo, p - 1, x, permutation);
+    quicksort(p + 1, hi, x, permutation);
+  }
+}
+
+unsigned int quicksort(unsigned int n, double *x, std::vector<int> &permutation) {
+  op_cmp = 0;
+  permutation.resize(n);
+  for (unsigned int i = 0; i < n; ++i) {
+    permutation[i] = i;
+  }
+  quicksort(0, n - 1, x, permutation);
+  return op_cmp;
+}
+
+void echelonForm(unsigned int n, unsigned int k, int **x) {
+  int r = 0;
+  int c = 0;
+  while (r < k && c < n) {
+    int index = -1;
+    for (unsigned int i = r; i < k; ++i) {
+      if (x[i][c]) {
+        index = i;
+        break;
+      }
+    }
+    if (index == -1) {
+      ++c;
+    } else {
+      if (index != r) {
+        for (unsigned int i = 0; i < n; ++i) {
+          std::swap(x[index][i], x[r][i]);
+        }
+      }
+      for (unsigned int i = r + 1; i < k; ++i) {
+        if (x[i][c]) {
+          for (unsigned int j = c; j < n; ++j) {
+            x[i][j] ^= x[r][j];
+          }
+        }
+      }
+      ++r;
+      ++c;
+    }
+  }
+}
+
+void comb_search(unsigned int n, unsigned int k, std::vector<int> &comb, std::vector<std::vector<int>> &combs) {
+  if(k == 0) {
+    combs.push_back(comb);
+    return;
+  }
+  else {
+    for(unsigned int i=0; i<n; ++i) {
+      bool flag = true;
+      for(auto j : comb) {
+        if(j == i) {
+          flag = false;
+          break;
+        }
+      }
+      if(!flag) {
+        continue;
+      }
+      comb.push_back(i);
+      comb_search(n, k-1, comb, combs);
+      comb.pop_back();
+    }
+  }
+}
+
+std::vector<std::vector<int>> combinations(unsigned int n, unsigned int k)
+{
+  std::vector<std::vector<int>> combs(0);
+  std::vector<int> comb(0);
+  comb_search(n, k, comb, combs);
+  return combs;
+}
 

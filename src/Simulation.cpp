@@ -6,44 +6,38 @@
 #include <BSDDecoder.h>
 #include <iostream>
 #include <chrono>
+#include <OrderedStatisticsDecoder.h>
 #include "Simulation.h"
 
 const double EPSILON = 0.0000001;
 
-void Simulation::generate_information_vector()
-{
-  static std::uniform_int_distribution<int> distribution(0,1);
-  for(unsigned int i=0; i<k; ++i)
-  {
+void Simulation::generate_information_vector() {
+  static std::uniform_int_distribution<int> distribution(0, 1);
+  for (unsigned int i = 0; i < k; ++i) {
     u[i] = distribution(gen);
   }
 }
 
-void Simulation::encode()
-{
+void Simulation::encode() {
   int temp = 0;
-  for(unsigned int i=0; i<n; ++i)
-  {
+  for (unsigned int i = 0; i < n; ++i) {
     temp = 0;
-    for(unsigned int j=0; j<k; ++j)
-    {
+    for (unsigned int j = 0; j < k; ++j) {
       temp ^= g[j][i] & u[j];
     }
     ux[i] = (temp ? 1 : 0);
   }
 }
 
-void Simulation::apply_noise()
-{
+void Simulation::apply_noise() {
   // Applying AWGN with BPSK modulation
   std::normal_distribution<double> rv(0.0, dev);
-  for(unsigned int i=0; i<n; ++i)
-  {
+  for (unsigned int i = 0; i < n; ++i) {
     x[i] = (ux[i] ? 1.0 : -1.0) + rv(gen);
   }
 }
 
-int Simulation::calculate_syndrome(const int* vec) {
+int Simulation::calculate_syndrome(const int *vec) {
   memset(synd, 0, (n - k) * sizeof(int));
   int syndsum = 0;
   for (unsigned int j = 0; j < n - k; ++j) {
@@ -74,14 +68,13 @@ Simulation::Simulation(std::ifstream &input_file, unsigned int max_errors,
   // input_file >> code_name;
   input_file >> n >> k;
   g = readMatrix(input_file, n, k);
-  h = readMatrix(input_file, n, n-k);
+  h = readMatrix(input_file, n, n - k);
   test = 0;
   this->max_iterations = max_iterations;
   this->max_errors = max_errors;
   dev = 0;
   stn = 0;
-  if(seed == 0)
-  {
+  if (seed == 0) {
     seed = std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
@@ -89,7 +82,7 @@ Simulation::Simulation(std::ifstream &input_file, unsigned int max_errors,
   y = new int[n];
   u = new int[k];
   ux = new int[n];
-  synd = new int[n-k];
+  synd = new int[n - k];
 }
 
 Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : Simulation(input_file) {
@@ -97,26 +90,25 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
   run_config >> max_errors >> max_iterations;
   unsigned int seed;
   run_config >> seed;
-  if(seed == 0)
-  {
+  if (seed == 0) {
     seed = std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
   decoders.resize(0);
   std::string decoder_name;
-  while(run_config.peek() != EOF) {
+  while (run_config.peek() != EOF) {
     run_config >> decoder_name;
     DecoderID id = stringToId(decoder_name);
-    switch(id) {
+    switch (id) {
       case DecoderID::BEAST: {
         double delta;
         run_config >> delta;
-        ISoftDecoder *beast = new BeastDecoder(n, k, h, delta);
+        SoftDecoder *beast = new BeastDecoder(n, k, h, delta);
         decoders.push_back(beast);
         break;
       }
       case DecoderID::BSD: {
-        ISoftDecoder *bsd = new BSDDecoder(n, k, h);
+        SoftDecoder *bsd = new BSDDecoder(n, k, h);
         decoders.push_back(bsd);
         break;
       }
@@ -124,7 +116,13 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
         break;
       }
       case DecoderID::ERROR: {
-        std::cerr<<"Invalid run config: " + decoder_name + " is not a name";
+        std::cerr << "Invalid run config: " + decoder_name + " is not a name";
+      }
+      case DecoderID::ORDERED_STATISTICS: {
+        int w;
+        run_config >> w;
+        SoftDecoder *osd = new OrderedStatisticsDecoder(n, k, g, w);
+        decoders.push_back(osd);
       }
     }
   }
@@ -133,11 +131,10 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
   add_ops_by_decoder.resize(decoders.size());
 }
 
-Simulation::Simulation(std::ifstream &input_file, double stn, ISoftDecoder *decoder, unsigned int max_errors,
-    unsigned int max_iterations, unsigned int seed) : Simulation(input_file)  {
+Simulation::Simulation(std::ifstream &input_file, double stn, SoftDecoder *decoder, unsigned int max_errors,
+                       unsigned int max_iterations, unsigned int seed) : Simulation(input_file) {
   setSTN(stn);
-  if(seed == 0)
-  {
+  if (seed == 0) {
     seed = std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
@@ -154,20 +151,17 @@ Simulation::~Simulation() {
   delete[] x;
   delete[] y;
   delete[] u;
-  for(unsigned int i=0; i<k; ++i)
-  {
+  for (unsigned int i = 0; i < k; ++i) {
     delete[] g[i];
   }
   delete[] g;
-  for(unsigned int i=0; i<n-k; ++i)
-  {
+  for (unsigned int i = 0; i < n - k; ++i) {
     delete[] h[i];
   }
   delete[] h;
   delete[] ux;
   delete[] synd;
-  for(unsigned int i=0; i<decoders.size(); ++i)
-  {
+  for (unsigned int i = 0; i < decoders.size(); ++i) {
     delete decoders[i];
   }
 }
@@ -182,11 +176,11 @@ void Simulation::run() {
   bool all_stopped = false;
   std::fill(decoder_stopped.begin(), decoder_stopped.end(), false);
   test = 0;
-  while(!all_stopped && test < max_iterations) {
+  while (!all_stopped && test < max_iterations) {
     generate_information_vector();
     encode();
     apply_noise();
-    for(unsigned long i=0; i<decoders.size(); ++i) {
+    for (unsigned long i = 0; i < decoders.size(); ++i) {
       if (decoder_stopped[i]) {
         continue;
       }
@@ -201,18 +195,16 @@ void Simulation::run() {
       }
     }
     all_stopped = true;
-    for(bool stop : decoder_stopped) {
+    for (bool stop : decoder_stopped) {
       all_stopped = all_stopped && stop;
     }
     ++test;
   }
 }
 
-ISoftDecoder *Simulation::get_decoder(DecoderID id) {
-  for(auto dec : decoders)
-  {
-    if(dec->get_id() == id)
-    {
+SoftDecoder *Simulation::get_decoder(DecoderID id) {
+  for (auto dec : decoders) {
+    if (dec->get_id() == id) {
       return dec;
     }
   }
@@ -220,21 +212,20 @@ ISoftDecoder *Simulation::get_decoder(DecoderID id) {
 }
 
 void Simulation::add_decoder(DecoderID id) {
-  switch(id) {
+  switch (id) {
     case DecoderID::BEAST: {
-      ISoftDecoder *beast = new BeastDecoder(n, k, h, 0.5);
+      SoftDecoder *beast = new BeastDecoder(n, k, h, 0.5);
       decoders.push_back(beast);
-      errors_by_decoder.resize(decoders.size());
-      cmp_ops_by_decoder.resize(decoders.size());
-      add_ops_by_decoder.resize(decoders.size());
       break;
     }
     case DecoderID::BSD: {
-      ISoftDecoder *bsd = new BSDDecoder(n, k, h);
+      SoftDecoder *bsd = new BSDDecoder(n, k, h);
       decoders.push_back(bsd);
-      errors_by_decoder.resize(decoders.size());
-      cmp_ops_by_decoder.resize(decoders.size());
-      add_ops_by_decoder.resize(decoders.size());
+      break;
+    }
+    case DecoderID::ORDERED_STATISTICS: {
+      SoftDecoder *osd = new OrderedStatisticsDecoder(n, k, g, 0);
+      decoders.push_back(osd);
       break;
     }
     case DecoderID::KTKL: {
@@ -244,6 +235,9 @@ void Simulation::add_decoder(DecoderID id) {
       return;
     }
   }
+  errors_by_decoder.resize(decoders.size());
+  cmp_ops_by_decoder.resize(decoders.size());
+  add_ops_by_decoder.resize(decoders.size());
 }
 void Simulation::setSTN(double stn) {
   this->stn = stn;
@@ -253,13 +247,12 @@ void Simulation::setSTN(double stn) {
 #ifdef CATCH_TESTING
 void Simulation::test_run() {
   std::normal_distribution<double> rv(0.0, dev);
-  double metric, calcWeight,  euclTrue, euclCalc, overall = 0;
+  double metric, calcWeight, euclTrue, euclCalc, overall = 0;
   bool flag;
   std::string word;
   int fails = 0;
   std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
-  for(test = 0; test < max_iterations; ++test)
-  {
+  for (test = 0; test < max_iterations; ++test) {
     INFO("Test #" << test);
     generate_information_vector();
     INFO("Informational word: " << arrayToSstream<int>(k, u).str());
@@ -270,21 +263,16 @@ void Simulation::test_run() {
     REQUIRE(calculate_syndrome(ux) == 0);
     INFO("Coded word with noise: " << arrayToSstream<double>(n, x).str());
     metric = 0;
-    for(unsigned int i=0; i<n; ++i)
-    {
-      if(x[i] < 0)
-      {
+    for (unsigned int i = 0; i < n; ++i) {
+      if (x[i] < 0) {
         metric += (ux[i] == 0 ? 0 : fabs(x[i]));
-      }
-      else
-      {
+      } else {
         metric += (ux[i] == 1 ? 0 : fabs(x[i]));
       }
     }
     euclTrue = 0;
-    for(unsigned int i=0; i<n; ++i)
-    {
-      euclTrue += ((ux[i] ? 1. : -1.) - x[i])*((ux[i] ? 1. : -1.) - x[i]);
+    for (unsigned int i = 0; i < n; ++i) {
+      euclTrue += ((ux[i] ? 1. : -1.) - x[i]) * ((ux[i] ? 1. : -1.) - x[i]);
     }
     start = std::chrono::high_resolution_clock::now();
 
@@ -296,9 +284,8 @@ void Simulation::test_run() {
     flag = check_decoded_word();
     int syndsum = calculate_syndrome(y);
     euclCalc = 0;
-    for(unsigned int i=0; i<n; ++i)
-    {
-      euclCalc += ((y[i] ? 1. : -1.) - x[i])*((y[i] ? 1. : -1.) - x[i]);
+    for (unsigned int i = 0; i < n; ++i) {
+      euclCalc += ((y[i] ? 1. : -1.) - x[i]) * ((y[i] ? 1. : -1.) - x[i]);
     }
     INFO("Decoded word: " << arrayToSstream<int>(n, y).str());
     INFO("True weight: " << metric);
@@ -306,51 +293,46 @@ void Simulation::test_run() {
     INFO("Syndrome: " << arrayToSstream<int>(n - k, synd).str());
     INFO("True Euclidean metric: " << euclTrue);
     INFO("Resulted Euclidean metric: " << euclCalc);
-    // INFO("Check matrix:\n"<<matrixToSstream(n-k, n, h).str());
-    if(!((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
+    // INFO("Check matrix:\n"<<matrixToSstream(n-k, n, g).str());
+    if (!((flag || calcWeight < metric || fabs(calcWeight - metric) < EPSILON) &&
         syndsum == 0 &&
-        (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON)))
-    {
+        (euclCalc < euclTrue || fabs(euclCalc - euclTrue) < EPSILON))) {
       ++fails;
       CHECK(false);
     }
-    if(!((test+1) % 250))
-    {
-      WARN("Time to decode "<< test+1<< " words: "<< overall<< "ms");
+    if (!((test + 1) % 250)) {
+      WARN("Time to decode " << test + 1 << " words: " << overall << "ms");
     }
   }
-  WARN("Overall time: "<< overall <<"ms");
-  WARN("Failed tests: "<<fails);
+  WARN("Overall time: " << overall << "ms");
+  WARN("Failed tests: " << fails);
 }
 #endif
 
-void Simulation::log_header()
-{
-  std::cout<<"STN,DEV,ITERS,";
-  for(auto dec : decoders)
-  {
+void Simulation::log_header() {
+  std::cout << "STN,DEV,ITERS,";
+  for (auto dec : decoders) {
     std::string name = idToString(dec->get_id());
-    std::cout<<name<<"_FER,";
-    std::cout<<name<<"_CMP,";
-    std::cout<<name<<"_ADD,";
+    std::cout << name << "_FER,";
+    std::cout << name << "_CMP,";
+    std::cout << name << "_ADD,";
   }
-  std::cout<<std::endl;
+  std::cout << std::endl;
 }
 
 void Simulation::log() {
-  std::cout<<stn<<",";
-  std::cout<<dev<<",";
-  std::cout<<test<<",";
-  for(unsigned long i=0; i<decoders.size(); ++i)
-  {
-    std::cout<<1.0*errors_by_decoder[i] / test<<","<<1.0*cmp_ops_by_decoder[i] / test << "," << 1.0*add_ops_by_decoder[i] / test << ",";
+  std::cout << stn << ",";
+  std::cout << dev << ",";
+  std::cout << test << ",";
+  for (unsigned long i = 0; i < decoders.size(); ++i) {
+    std::cout << 1.0 * errors_by_decoder[i] / test << "," << 1.0 * cmp_ops_by_decoder[i] / test << ","
+              << 1.0 * add_ops_by_decoder[i] / test << ",";
   }
-  std::cout<<std::endl;
+  std::cout << std::endl;
 }
 std::vector<DecoderID> Simulation::get_decoders() {
   std::vector<DecoderID> res;
-  for(auto dec : decoders)
-  {
+  for (auto dec : decoders) {
     res.push_back(dec->get_id());
   }
   return res;

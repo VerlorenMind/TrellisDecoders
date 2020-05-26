@@ -5,7 +5,7 @@
 #include <cstring>
 
 #include "Utility.h"
-#include "ISoftDecoder.h"
+#include "SoftDecoder.h"
 
 enum Tree {
   NIL,
@@ -22,22 +22,17 @@ struct Node {
   mutable bool path_avalaible[2];
 };
 
-class TrellisDecoder : public ISoftDecoder {
+class TrellisDecoder : public SoftDecoder {
  protected:
   int **h;
-  unsigned int n;
-  unsigned int k;
   unsigned int *ranges;
-  int *alpha;
-  double *beta;
   unsigned trellis_size;
   uint64_t *trellis_profile;
-  double metric(int x, unsigned int pos);
   void init(unsigned int n, unsigned int k, int **checkmatrix);
  public:
   TrellisDecoder(unsigned int n, unsigned int k, std::ifstream &filename);
   TrellisDecoder(unsigned int n, unsigned int k, int **checkmatrix);
   double decode(double *x, int *u) override = 0;
-  ~TrellisDecoder() override;
+  ~TrellisDecoder();
 };
 #endif //BEAST_TRELLISDECODER_H

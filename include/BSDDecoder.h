@@ -12,7 +12,7 @@ class BSDDecoder : public TrellisDecoder {
  public:
   BSDDecoder(unsigned int n, unsigned int k, std::ifstream &filename);
   BSDDecoder(unsigned int n, unsigned int k, int **h);
-  ~BSDDecoder() override;
+  ~BSDDecoder();
   double decode(double *x, int *u) override;
 };
 #endif //BEAST_BSDDECODER_H

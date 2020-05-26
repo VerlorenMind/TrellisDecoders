@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <fstream>
+#include <vector>
 
 template<class T>
 std::stringstream arrayToSstream(unsigned int size, T *a) {
@@ -30,5 +31,11 @@ int **readMatrix(std::ifstream &input, unsigned int n, unsigned int k);
 void minspanForm(unsigned int n, unsigned int k, int **a);
 
 unsigned int *findRanges(unsigned int n, unsigned int k, int **a);
+
+unsigned int quicksort(unsigned int n, double* x, std::vector<int> &permutation);
+
+void echelonForm(unsigned int n, unsigned int k, int**x);
+
+std::vector<std::vector<int>> combinations(unsigned int n, unsigned int k);
 
 #endif //BEAST_UTIL_H

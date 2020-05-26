@@ -5,7 +5,7 @@
 #include <random>
 #include "CatchWrap.h"
 #include "DecoderID.h"
-#include "ISoftDecoder.h"
+#include "SoftDecoder.h"
 
 class Simulation {
  private:
@@ -19,7 +19,7 @@ class Simulation {
   int* ux;
   int *synd;
   std::string code_name;
-  std::vector<ISoftDecoder*> decoders;
+  std::vector<SoftDecoder*> decoders;
   std::default_random_engine gen;
   void generate_information_vector();
   void encode();
@@ -33,11 +33,11 @@ class Simulation {
   explicit Simulation(std::ifstream &input_file, unsigned int max_errors = 0,
                       unsigned int max_iterations = 0, unsigned int seed = 123);
   Simulation(std::ifstream &input_file, std::ifstream &run_config);
-  Simulation(std::ifstream &input_file, double stn, ISoftDecoder* decoder, unsigned int max_errors,
+  Simulation(std::ifstream &input_file, double stn, SoftDecoder* decoder, unsigned int max_errors,
              unsigned int max_iterations, unsigned int seed = 123);
   ~Simulation();
   void run();
-  ISoftDecoder* get_decoder(DecoderID id);
+  SoftDecoder* get_decoder(DecoderID id);
   void add_decoder(DecoderID id);
   void setSTN(double stn);
 #ifdef CATCH_TESTING

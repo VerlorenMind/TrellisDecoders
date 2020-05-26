@@ -23,7 +23,7 @@
 #    pragma GCC system_header
 #endif
 
-// start catch_suppress_warnings.h
+// start catch_suppress_warnings.g
 
 #ifdef __clang__
 #   ifdef __ICC // icpc defines the __clang__ macro
@@ -42,7 +42,7 @@
 #    pragma GCC diagnostic ignored "-Wunused-variable"
 #    pragma GCC diagnostic ignored "-Wpadded"
 #endif
-// end catch_suppress_warnings.h
+// end catch_suppress_warnings.g
 #if defined(CATCH_CONFIG_MAIN) || defined(CATCH_CONFIG_RUNNER)
 #  define CATCH_IMPL
 #  define CATCH_CONFIG_ALL_PARTS
@@ -59,10 +59,10 @@
 #endif
 
 #if !defined(CATCH_CONFIG_IMPL_ONLY)
-// start catch_platform.h
+// start catch_platform.g
 
 #ifdef __APPLE__
-# include <TargetConditionals.h>
+# include <TargetConditionals.g>
 # if TARGET_OS_OSX == 1
 #  define CATCH_PLATFORM_MAC
 # elif TARGET_OS_IPHONE == 1
@@ -76,7 +76,7 @@
 #  define CATCH_PLATFORM_WINDOWS
 #endif
 
-// end catch_platform.h
+// end catch_platform.g
 
 #ifdef CATCH_IMPL
 #  ifndef CLARA_CONFIG_MAIN
@@ -85,18 +85,18 @@
 #  endif
 #endif
 
-// start catch_user_interfaces.h
+// start catch_user_interfaces.g
 
 namespace Catch {
     unsigned int rngSeed();
 }
 
-// end catch_user_interfaces.h
-// start catch_tag_alias_autoregistrar.h
+// end catch_user_interfaces.g
+// start catch_tag_alias_autoregistrar.g
 
-// start catch_common.h
+// start catch_common.g
 
-// start catch_compiler_capabilities.h
+// start catch_compiler_capabilities.g
 
 // Detect a number of compiler features - by compiler
 // The following features are defined:
@@ -238,7 +238,7 @@ namespace Catch {
 #   define CATCH_INTERNAL_UNSUPPRESS_GLOBALS_WARNINGS
 #endif
 
-// end catch_compiler_capabilities.h
+// end catch_compiler_capabilities.g
 #define INTERNAL_CATCH_UNIQUE_NAME_LINE2( name, line ) name##line
 #define INTERNAL_CATCH_UNIQUE_NAME_LINE( name, line ) INTERNAL_CATCH_UNIQUE_NAME_LINE2( name, line )
 #ifdef CATCH_CONFIG_COUNTER
@@ -308,7 +308,7 @@ namespace Catch {
 #define CATCH_INTERNAL_LINEINFO \
     ::Catch::SourceLineInfo( __FILE__, static_cast<std::size_t>( __LINE__ ) )
 
-// end catch_common.h
+// end catch_common.g
 namespace Catch {
 
     struct RegistrarForTagAliases {
@@ -322,10 +322,10 @@ namespace Catch {
     namespace{ Catch::RegistrarForTagAliases INTERNAL_CATCH_UNIQUE_NAME( AutoRegisterTagAlias )( alias, spec, CATCH_INTERNAL_LINEINFO ); } \
     CATCH_INTERNAL_UNSUPPRESS_GLOBALS_WARNINGS
 
-// end catch_tag_alias_autoregistrar.h
-// start catch_test_registry.h
+// end catch_tag_alias_autoregistrar.g
+// start catch_test_registry.g
 
-// start catch_interfaces_testcase.h
+// start catch_interfaces_testcase.g
 
 #include <vector>
 #include <memory>
@@ -356,8 +356,8 @@ namespace Catch {
 
 }
 
-// end catch_interfaces_testcase.h
-// start catch_stringref.h
+// end catch_interfaces_testcase.g
+// start catch_stringref.g
 
 #include <cstddef>
 #include <string>
@@ -478,7 +478,7 @@ namespace Catch {
 
 } // namespace Catch
 
-// end catch_stringref.h
+// end catch_stringref.g
 namespace Catch {
 
 template<typename C>
@@ -562,14 +562,14 @@ struct AutoReg : NonCopyable {
         Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar )( Catch::makeTestInvoker( Function ), CATCH_INTERNAL_LINEINFO, "", Catch::NameAndTags{ __VA_ARGS__ } ); /* NOLINT */ \
         CATCH_INTERNAL_UNSUPPRESS_GLOBALS_WARNINGS
 
-// end catch_test_registry.h
+// end catch_test_registry.g
 // start catch_capture.hpp
 
-// start catch_assertionhandler.h
+// start catch_assertionhandler.g
 
-// start catch_assertioninfo.h
+// start catch_assertioninfo.g
 
-// start catch_result_type.h
+// start catch_result_type.g
 
 namespace Catch {
 
@@ -614,7 +614,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_result_type.h
+// end catch_result_type.g
 namespace Catch {
 
     struct AssertionInfo
@@ -631,16 +631,16 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_assertioninfo.h
-// start catch_decomposer.h
+// end catch_assertioninfo.g
+// start catch_decomposer.g
 
-// start catch_tostring.h
+// start catch_tostring.g
 
 #include <vector>
 #include <cstddef>
 #include <type_traits>
 #include <string>
-// start catch_stream.h
+// start catch_stream.g
 
 #include <iosfwd>
 #include <cstddef>
@@ -681,12 +681,12 @@ namespace Catch {
     };
 }
 
-// end catch_stream.h
+// end catch_stream.g
 
 #ifdef __OBJC__
 // start catch_objc_arc.hpp
 
-#import <Foundation/Foundation.h>
+#import <Foundation/Foundation.g>
 
 #ifdef __has_feature
 #define CATCH_ARC_ENABLED __has_feature(objc_arc)
@@ -1231,7 +1231,7 @@ struct ratio_string<std::milli> {
     struct StringMaker<std::chrono::duration<Value, std::ratio<3600>>> {
         static std::string convert(std::chrono::duration<Value, std::ratio<3600>> const& duration) {
             ReusableStringStream rss;
-            rss << duration.count() << " h";
+            rss << duration.count() << " g";
             return rss.str();
         }
     };
@@ -1277,7 +1277,7 @@ struct ratio_string<std::milli> {
 #pragma warning(pop)
 #endif
 
-// end catch_tostring.h
+// end catch_tostring.g
 #include <iosfwd>
 
 #ifdef _MSC_VER
@@ -1437,8 +1437,8 @@ namespace Catch {
 #pragma warning(pop)
 #endif
 
-// end catch_decomposer.h
-// start catch_interfaces_capture.h
+// end catch_decomposer.g
+// start catch_interfaces_capture.g
 
 #include <string>
 
@@ -1508,7 +1508,7 @@ namespace Catch {
     IResultCapture& getResultCapture();
 }
 
-// end catch_interfaces_capture.h
+// end catch_interfaces_capture.g
 namespace Catch {
 
     struct TestFailureException{};
@@ -1581,8 +1581,8 @@ namespace Catch {
 
 } // namespace Catch
 
-// end catch_assertionhandler.h
-// start catch_message.h
+// end catch_assertionhandler.g
+// start catch_message.g
 
 #include <string>
 
@@ -1640,7 +1640,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_message.h
+// end catch_message.g
 #if !defined(CATCH_CONFIG_DISABLE)
 
 #if !defined(CATCH_CONFIG_DISABLE_STRINGIFICATION)
@@ -1773,11 +1773,11 @@ namespace Catch {
 #endif // CATCH_CONFIG_DISABLE
 
 // end catch_capture.hpp
-// start catch_section.h
+// start catch_section.g
 
-// start catch_section_info.h
+// start catch_section_info.g
 
-// start catch_totals.h
+// start catch_totals.g
 
 #include <cstddef>
 
@@ -1809,7 +1809,7 @@ namespace Catch {
     };
 }
 
-// end catch_totals.h
+// end catch_totals.g
 #include <string>
 
 namespace Catch {
@@ -1835,8 +1835,8 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_section_info.h
-// start catch_timer.h
+// end catch_section_info.g
+// start catch_timer.g
 
 #include <cstdint>
 
@@ -1857,7 +1857,7 @@ namespace Catch {
 
 } // namespace Catch
 
-// end catch_timer.h
+// end catch_timer.g
 #include <string>
 
 namespace Catch {
@@ -1884,8 +1884,8 @@ namespace Catch {
     #define INTERNAL_CATCH_SECTION( ... ) \
         if( Catch::Section const& INTERNAL_CATCH_UNIQUE_NAME( catch_internal_Section ) = Catch::SectionInfo( CATCH_INTERNAL_LINEINFO, __VA_ARGS__ ) )
 
-// end catch_section.h
-// start catch_benchmark.h
+// end catch_section.g
+// start catch_benchmark.g
 
 #include <cstdint>
 #include <string>
@@ -1930,10 +1930,10 @@ namespace Catch {
 #define BENCHMARK( name ) \
     for( Catch::BenchmarkLooper looper( name ); looper; looper.increment() )
 
-// end catch_benchmark.h
-// start catch_interfaces_exception.h
+// end catch_benchmark.g
+// start catch_interfaces_exception.g
 
-// start catch_interfaces_registry_hub.h
+// start catch_interfaces_registry_hub.g
 
 #include <string>
 #include <memory>
@@ -1980,7 +1980,7 @@ namespace Catch {
 
 }
 
-// end catch_interfaces_registry_hub.h
+// end catch_interfaces_registry_hub.g
 #if defined(CATCH_CONFIG_DISABLE)
     #define INTERNAL_CATCH_TRANSLATE_EXCEPTION_NO_REG( translatorName, signature) \
         static std::string translatorName( signature )
@@ -2051,8 +2051,8 @@ namespace Catch {
 
 #define INTERNAL_CATCH_TRANSLATE_EXCEPTION( signature ) INTERNAL_CATCH_TRANSLATE_EXCEPTION2( INTERNAL_CATCH_UNIQUE_NAME( catch_internal_ExceptionTranslator ), signature )
 
-// end catch_interfaces_exception.h
-// start catch_approx.h
+// end catch_interfaces_exception.g
+// start catch_approx.g
 
 #include <type_traits>
 #include <stdexcept>
@@ -2173,8 +2173,8 @@ struct StringMaker<Catch::Detail::Approx> {
 
 } // end namespace Catch
 
-// end catch_approx.h
-// start catch_string_manip.h
+// end catch_approx.g
+// start catch_string_manip.g
 
 #include <string>
 #include <iosfwd>
@@ -2201,11 +2201,11 @@ namespace Catch {
     };
 }
 
-// end catch_string_manip.h
+// end catch_string_manip.g
 #ifndef CATCH_CONFIG_DISABLE_MATCHERS
-// start catch_capture_matchers.h
+// start catch_capture_matchers.g
 
-// start catch_matchers.h
+// start catch_matchers.g
 
 #include <string>
 #include <vector>
@@ -2351,8 +2351,8 @@ using Matchers::Impl::MatcherBase;
 
 } // namespace Catch
 
-// end catch_matchers.h
-// start catch_matchers_floating.h
+// end catch_matchers.g
+// start catch_matchers_floating.g
 
 #include <type_traits>
 #include <cmath>
@@ -2394,7 +2394,7 @@ namespace Matchers {
 } // namespace Matchers
 } // namespace Catch
 
-// end catch_matchers_floating.h
+// end catch_matchers_floating.g
 // start catch_matchers_generic.hpp
 
 #include <functional>
@@ -2443,7 +2443,7 @@ public:
 } // namespace Catch
 
 // end catch_matchers_generic.hpp
-// start catch_matchers_string.h
+// start catch_matchers_string.g
 
 #include <string>
 
@@ -2511,8 +2511,8 @@ namespace Matchers {
 } // namespace Matchers
 } // namespace Catch
 
-// end catch_matchers_string.h
-// start catch_matchers_vector.h
+// end catch_matchers_string.g
+// start catch_matchers_vector.g
 
 #include <algorithm>
 
@@ -2684,7 +2684,7 @@ namespace Matchers {
 } // namespace Matchers
 } // namespace Catch
 
-// end catch_matchers_vector.h
+// end catch_matchers_vector.g
 namespace Catch {
 
     template<typename ArgT, typename MatcherT>
@@ -2751,12 +2751,12 @@ namespace Catch {
         INTERNAL_CATCH_REACT( catchAssertionHandler ) \
     } while( false )
 
-// end catch_capture_matchers.h
+// end catch_capture_matchers.g
 #endif
 
 // These files are included here so the single_include script doesn't put them
 // in the conditionally compiled sections
-// start catch_test_case_info.h
+// start catch_test_case_info.g
 
 #include <string>
 #include <vector>
@@ -2834,8 +2834,8 @@ namespace Catch {
 #pragma clang diagnostic pop
 #endif
 
-// end catch_test_case_info.h
-// start catch_interfaces_runner.h
+// end catch_test_case_info.g
+// start catch_interfaces_runner.g
 
 namespace Catch {
 
@@ -2845,12 +2845,12 @@ namespace Catch {
     };
 }
 
-// end catch_interfaces_runner.h
+// end catch_interfaces_runner.g
 
 #ifdef __OBJC__
 // start catch_objc.hpp
 
-#import <objc/runtime.h>
+#import <objc/runtime.g>
 
 #include <string>
 
@@ -3052,29 +3052,29 @@ return @ desc; \
 #endif
 
 #ifdef CATCH_CONFIG_EXTERNAL_INTERFACES
-// start catch_external_interfaces.h
+// start catch_external_interfaces.g
 
 // start catch_reporter_bases.hpp
 
-// start catch_interfaces_reporter.h
+// start catch_interfaces_reporter.g
 
 // start catch_config.hpp
 
-// start catch_test_spec_parser.h
+// start catch_test_spec_parser.g
 
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 #endif
 
-// start catch_test_spec.h
+// start catch_test_spec.g
 
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
 #endif
 
-// start catch_wildcard_pattern.h
+// start catch_wildcard_pattern.g
 
 namespace Catch
 {
@@ -3100,7 +3100,7 @@ namespace Catch
     };
 }
 
-// end catch_wildcard_pattern.h
+// end catch_wildcard_pattern.g
 #include <string>
 #include <vector>
 #include <memory>
@@ -3162,8 +3162,8 @@ namespace Catch {
 #pragma clang diagnostic pop
 #endif
 
-// end catch_test_spec.h
-// start catch_interfaces_tag_alias_registry.h
+// end catch_test_spec.g
+// start catch_interfaces_tag_alias_registry.g
 
 #include <string>
 
@@ -3182,7 +3182,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_interfaces_tag_alias_registry.h
+// end catch_interfaces_tag_alias_registry.g
 namespace Catch {
 
     class TestSpecParser {
@@ -3238,8 +3238,8 @@ namespace Catch {
 #pragma clang diagnostic pop
 #endif
 
-// end catch_test_spec_parser.h
-// start catch_interfaces_config.h
+// end catch_test_spec_parser.g
+// start catch_interfaces_config.g
 
 #include <iosfwd>
 #include <string>
@@ -3311,7 +3311,7 @@ namespace Catch {
     using IConfigPtr = std::shared_ptr<IConfig const>;
 }
 
-// end catch_interfaces_config.h
+// end catch_interfaces_config.g
 // Libstdc++ doesn't like incomplete classes for unique_ptr
 
 #include <memory>
@@ -3415,7 +3415,7 @@ namespace Catch {
 } // end namespace Catch
 
 // end catch_config.hpp
-// start catch_assertionresult.h
+// start catch_assertionresult.g
 
 #include <string>
 
@@ -3460,7 +3460,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_assertionresult.h
+// end catch_assertionresult.g
 // start catch_option.hpp
 
 namespace Catch {
@@ -3737,7 +3737,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_interfaces_reporter.h
+// end catch_interfaces_reporter.g
 #include <algorithm>
 #include <cstring>
 #include <cfloat>
@@ -3998,7 +3998,7 @@ namespace Catch {
 } // end namespace Catch
 
 // end catch_reporter_bases.hpp
-// start catch_console_colour.h
+// start catch_console_colour.g
 
 namespace Catch {
 
@@ -4056,7 +4056,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_console_colour.h
+// end catch_console_colour.g
 // start catch_reporter_registrars.hpp
 
 
@@ -4124,7 +4124,7 @@ namespace Catch {
 
 // end catch_reporter_registrars.hpp
 // Allow users to base their work off existing reporters
-// start catch_reporter_compact.h
+// start catch_reporter_compact.g
 
 namespace Catch {
 
@@ -4152,8 +4152,8 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_reporter_compact.h
-// start catch_reporter_console.h
+// end catch_reporter_compact.g
+// start catch_reporter_console.g
 
 #if defined(_MSC_VER)
 #pragma warning(push)
@@ -4222,10 +4222,10 @@ namespace Catch {
 #pragma warning(pop)
 #endif
 
-// end catch_reporter_console.h
-// start catch_reporter_junit.h
+// end catch_reporter_console.g
+// start catch_reporter_junit.g
 
-// start catch_xmlwriter.h
+// start catch_xmlwriter.g
 
 #include <vector>
 
@@ -4318,7 +4318,7 @@ namespace Catch {
 
 }
 
-// end catch_xmlwriter.h
+// end catch_xmlwriter.g
 namespace Catch {
 
     class JunitReporter : public CumulativeReporterBase<JunitReporter> {
@@ -4365,8 +4365,8 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_reporter_junit.h
-// start catch_reporter_xml.h
+// end catch_reporter_junit.g
+// start catch_reporter_xml.g
 
 namespace Catch {
     class XmlReporter : public StreamingReporterBase<XmlReporter> {
@@ -4413,9 +4413,9 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_reporter_xml.h
+// end catch_reporter_xml.g
 
-// end catch_external_interfaces.h
+// end catch_external_interfaces.g
 #endif
 
 #endif // ! CATCH_CONFIG_IMPL_ONLY
@@ -4429,7 +4429,7 @@ namespace Catch {
 #endif
 
 // Keep these here for external reporters
-// start catch_test_case_tracker.h
+// start catch_test_case_tracker.g
 
 #include <string>
 #include <vector>
@@ -4599,9 +4599,9 @@ using TestCaseTracking::IndexTracker;
 
 } // namespace Catch
 
-// end catch_test_case_tracker.h
+// end catch_test_case_tracker.g
 
-// start catch_leak_detector.h
+// start catch_leak_detector.g
 
 namespace Catch {
 
@@ -4610,7 +4610,7 @@ namespace Catch {
     };
 
 }
-// end catch_leak_detector.h
+// end catch_leak_detector.g
 // Cpp files will be included in the single-header file here
 // start catch_approx.cpp
 
@@ -4663,7 +4663,7 @@ std::string StringMaker<Catch::Detail::Approx>::convert(Catch::Detail::Approx co
 // end catch_approx.cpp
 // start catch_assertionhandler.cpp
 
-// start catch_context.h
+// start catch_context.g
 
 #include <memory>
 
@@ -4714,8 +4714,8 @@ namespace Catch {
     void cleanUpContext();
 }
 
-// end catch_context.h
-// start catch_debugger.h
+// end catch_context.g
+// start catch_debugger.g
 
 namespace Catch {
     bool isDebuggerActive();
@@ -4732,7 +4732,7 @@ namespace Catch {
     #if defined(__GNUC__) && (defined(__i386) || defined(__x86_64))
         #define CATCH_TRAP() asm volatile ("int $3") /* NOLINT */
     #else // Fall back to the generic way.
-        #include <signal.h>
+        #include <signal.g>
 
         #define CATCH_TRAP() raise(SIGTRAP)
     #endif
@@ -4752,12 +4752,12 @@ namespace Catch {
     #define CATCH_BREAK_INTO_DEBUGGER() Catch::doNothing()
 #endif
 
-// end catch_debugger.h
-// start catch_run_context.h
+// end catch_debugger.g
+// start catch_run_context.g
 
-// start catch_fatal_condition.h
+// start catch_fatal_condition.g
 
-// start catch_windows_h_proxy.h
+// start catch_windows_h_proxy.g
 
 
 #if defined(CATCH_PLATFORM_WINDOWS)
@@ -4772,9 +4772,9 @@ namespace Catch {
 #endif
 
 #ifdef __AFXDLL
-#include <AfxWin.h>
+#include <AfxWin.g>
 #else
-#include <windows.h>
+#include <windows.g>
 #endif
 
 #ifdef CATCH_DEFINED_NOMINMAX
@@ -4786,7 +4786,7 @@ namespace Catch {
 
 #endif // defined(CATCH_PLATFORM_WINDOWS)
 
-// end catch_windows_h_proxy.h
+// end catch_windows_h_proxy.g
 #if defined( CATCH_CONFIG_WINDOWS_SEH )
 
 namespace Catch {
@@ -4838,7 +4838,7 @@ namespace Catch {
 
 #endif
 
-// end catch_fatal_condition.h
+// end catch_fatal_condition.g
 #include <string>
 
 namespace Catch {
@@ -4960,7 +4960,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_run_context.h
+// end catch_run_context.g
 namespace Catch {
 
     auto operator <<( std::ostream& os, ITransientExpression const& expr ) -> std::ostream& {
@@ -5182,7 +5182,7 @@ namespace Catch {
     using StringMatcher = Matchers::Impl::MatcherBase<std::string>;
 
     // This is the general overload that takes a any string matcher
-    // There is another overload, in catch_assertionhandler.h/.cpp, that only takes a string and infers
+    // There is another overload, in catch_assertionhandler.g/.cpp, that only takes a string and infers
     // the Equals matcher (so the header does not mention matchers)
     void handleExceptionMatchExpr( AssertionHandler& handler, StringMatcher const& matcher, StringRef matcherString  ) {
         std::string exceptionMessage = Catch::translateActiveException();
@@ -5194,9 +5194,9 @@ namespace Catch {
 // end catch_capture_matchers.cpp
 // start catch_commandline.cpp
 
-// start catch_commandline.h
+// start catch_commandline.g
 
-// start catch_clara.h
+// start catch_clara.g
 
 // Use Catch's value for console width (store Clara's off to the side, if present)
 #ifdef CLARA_CONFIG_CONSOLE_WIDTH
@@ -6259,7 +6259,7 @@ namespace detail {
         {
             static_cast<Opt &>( *this )
                     ("display usage information")
-                    ["-?"]["-h"]["--help"]
+                    ["-?"]["-g"]["--help"]
                     .optional();
         }
     };
@@ -6464,14 +6464,14 @@ using detail::ParserResult;
 #undef CATCH_TEMP_CLARA_CONFIG_CONSOLE_WIDTH
 #endif
 
-// end catch_clara.h
+// end catch_clara.g
 namespace Catch {
 
     clara::Parser makeCommandLineParser( ConfigData& config );
 
 } // end namespace Catch
 
-// end catch_commandline.h
+// end catch_commandline.g
 #include <fstream>
 #include <ctime>
 
@@ -6692,7 +6692,7 @@ namespace Catch {
 // end catch_common.cpp
 // start catch_config.cpp
 
-// start catch_enforce.h
+// start catch_enforce.g
 
 #include <stdexcept>
 
@@ -6705,7 +6705,7 @@ namespace Catch {
 #define CATCH_ENFORCE( condition, msg ) \
     do{ if( !(condition) ) CATCH_ERROR( msg ); } while(false)
 
-// end catch_enforce.h
+// end catch_enforce.g
 namespace Catch {
 
     Config::Config( ConfigData const& data )
@@ -6774,7 +6774,7 @@ namespace Catch {
 #    pragma clang diagnostic ignored "-Wexit-time-destructors"
 #endif
 
-// start catch_errno_guard.h
+// start catch_errno_guard.g
 
 namespace Catch {
 
@@ -6788,7 +6788,7 @@ namespace Catch {
 
 }
 
-// end catch_errno_guard.h
+// end catch_errno_guard.g
 #include <sstream>
 
 namespace Catch {
@@ -7057,7 +7057,7 @@ namespace Catch {
 // end catch_context.cpp
 // start catch_debug_console.cpp
 
-// start catch_debug_console.h
+// start catch_debug_console.g
 
 #include <string>
 
@@ -7065,7 +7065,7 @@ namespace Catch {
     void writeToDebugConsole( std::string const& text );
 }
 
-// end catch_debug_console.h
+// end catch_debug_console.g
 #ifdef CATCH_PLATFORM_WINDOWS
 
     namespace Catch {
@@ -7089,11 +7089,11 @@ namespace Catch {
 
 #ifdef CATCH_PLATFORM_MAC
 
-#  include <assert.h>
-#  include <stdbool.h>
-#  include <sys/types.h>
-#  include <unistd.h>
-#  include <sys/sysctl.h>
+#  include <assert.g>
+#  include <stdbool.g>
+#  include <sys/types.g>
+#  include <unistd.g>
+#  include <sys/sysctl.g>
 #  include <cstddef>
 #  include <ostream>
 
@@ -7214,7 +7214,7 @@ namespace Catch {
 // end catch_errno_guard.cpp
 // start catch_exception_translator_registry.cpp
 
-// start catch_exception_translator_registry.h
+// start catch_exception_translator_registry.g
 
 #include <vector>
 #include <string>
@@ -7234,9 +7234,9 @@ namespace Catch {
     };
 }
 
-// end catch_exception_translator_registry.h
+// end catch_exception_translator_registry.g
 #ifdef __OBJC__
-#import "Foundation/Foundation.h"
+#import "Foundation/Foundation.g"
 #endif
 
 namespace Catch {
@@ -7482,7 +7482,7 @@ namespace Catch {
 // end catch_interfaces_registry_hub.cpp
 // start catch_interfaces_reporter.cpp
 
-// start catch_reporter_multi.h
+// start catch_reporter_multi.g
 
 namespace Catch {
 
@@ -7524,7 +7524,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_reporter_multi.h
+// end catch_reporter_multi.g
 namespace Catch {
 
     ReporterConfig::ReporterConfig( IConfigPtr const& _fullConfig )
@@ -7664,7 +7664,7 @@ namespace Catch {
 // start catch_leak_detector.cpp
 
 #ifdef CATCH_CONFIG_WINDOWS_CRTDBG
-#include <crtdbg.h>
+#include <crtdbg.g>
 
 namespace Catch {
 
@@ -7688,7 +7688,7 @@ namespace Catch {
 // end catch_leak_detector.cpp
 // start catch_list.cpp
 
-// start catch_list.h
+// start catch_list.g
 
 #include <set>
 
@@ -7714,14 +7714,14 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_list.h
-// start catch_text.h
+// end catch_list.g
+// start catch_text.g
 
 namespace Catch {
     using namespace clara::TextFlow;
 }
 
-// end catch_text.h
+// end catch_text.g
 #include <limits>
 #include <algorithm>
 #include <iomanip>
@@ -8127,13 +8127,13 @@ namespace Matchers {
 // end catch_matchers_string.cpp
 // start catch_message.cpp
 
-// start catch_uncaught_exceptions.h
+// start catch_uncaught_exceptions.g
 
 namespace Catch {
     bool uncaught_exceptions();
 } // end namespace Catch
 
-// end catch_uncaught_exceptions.h
+// end catch_uncaught_exceptions.g
 namespace Catch {
 
     MessageInfo::MessageInfo(   std::string const& _macroName,
@@ -8181,7 +8181,7 @@ namespace Catch {
 // end catch_message.cpp
 // start catch_random_number_generator.cpp
 
-// start catch_random_number_generator.h
+// start catch_random_number_generator.g
 
 #include <algorithm>
 
@@ -8211,7 +8211,7 @@ namespace Catch {
 
 }
 
-// end catch_random_number_generator.h
+// end catch_random_number_generator.g
 #include <cstdlib>
 
 namespace Catch {
@@ -8235,7 +8235,7 @@ namespace Catch {
 // end catch_random_number_generator.cpp
 // start catch_registry_hub.cpp
 
-// start catch_test_case_registry_impl.h
+// start catch_test_case_registry_impl.g
 
 #include <vector>
 #include <set>
@@ -8288,8 +8288,8 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_test_case_registry_impl.h
-// start catch_reporter_registry.h
+// end catch_test_case_registry_impl.g
+// start catch_reporter_registry.g
 
 #include <map>
 
@@ -8315,10 +8315,10 @@ namespace Catch {
     };
 }
 
-// end catch_reporter_registry.h
-// start catch_tag_alias_registry.h
+// end catch_reporter_registry.g
+// start catch_tag_alias_registry.g
 
-// start catch_tag_alias.h
+// start catch_tag_alias.g
 
 #include <string>
 
@@ -8333,7 +8333,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_tag_alias.h
+// end catch_tag_alias.g
 #include <map>
 
 namespace Catch {
@@ -8351,8 +8351,8 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_tag_alias_registry.h
-// start catch_startup_exception_registry.h
+// end catch_tag_alias_registry.g
+// start catch_startup_exception_registry.g
 
 #include <vector>
 #include <exception>
@@ -8369,7 +8369,7 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_startup_exception_registry.h
+// end catch_startup_exception_registry.g
 namespace Catch {
 
     namespace {
@@ -9007,7 +9007,7 @@ namespace Catch {
 // end catch_section_info.cpp
 // start catch_session.cpp
 
-// start catch_session.h
+// start catch_session.g
 
 #include <memory>
 
@@ -9047,8 +9047,8 @@ namespace Catch {
 
 } // end namespace Catch
 
-// end catch_session.h
-// start catch_version.h
+// end catch_session.g
+// start catch_version.g
 
 #include <iosfwd>
 
@@ -9078,7 +9078,7 @@ namespace Catch {
     Version const& libraryVersion();
 }
 
-// end catch_version.h
+// end catch_version.g
 #include <cstdlib>
 #include <iomanip>
 
@@ -13031,7 +13031,7 @@ using Catch::Detail::Approx;
 
 #endif // ! CATCH_CONFIG_IMPL_ONLY
 
-// start catch_reenable_warnings.h
+// start catch_reenable_warnings.g
 
 
 #ifdef __clang__
@@ -13044,7 +13044,7 @@ using Catch::Detail::Approx;
 #    pragma GCC diagnostic pop
 #endif
 
-// end catch_reenable_warnings.h
+// end catch_reenable_warnings.g
 // end catch.hpp
 #endif // TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
 
