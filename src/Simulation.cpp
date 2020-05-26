@@ -87,22 +87,27 @@ Simulation::Simulation(std::ifstream &input_file, unsigned int max_errors,
 
 Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : Simulation(input_file) {
   setSTN(1);
-  run_config >> max_errors >> max_iterations;
+  std::string line;
+  std::getline(run_config, line);
+  std::stringstream linestr(line);
+  linestr >> max_errors >> max_iterations;
   unsigned int seed;
-  run_config >> seed;
+  linestr >> seed;
   if (seed == 0) {
     seed = std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
   decoders.resize(0);
   std::string decoder_name;
-  while (run_config.peek() != EOF) {
-    run_config >> decoder_name;
+  while (std::getline(run_config, line)) {
+    linestr.str(line);
+    linestr.clear();
+    linestr >> decoder_name;
     DecoderID id = stringToId(decoder_name);
     switch (id) {
       case DecoderID::BEAST: {
         double delta;
-        run_config >> delta;
+        linestr >> delta;
         SoftDecoder *beast = new BeastDecoder(n, k, h, delta);
         decoders.push_back(beast);
         break;
@@ -120,7 +125,7 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
       }
       case DecoderID::ORDERED_STATISTICS: {
         int w;
-        run_config >> w;
+        linestr >> w;
         SoftDecoder *osd = new OrderedStatisticsDecoder(n, k, g, w);
         decoders.push_back(osd);
       }
@@ -313,9 +318,9 @@ void Simulation::log_header() {
   std::cout << "STN,DEV,ITERS,";
   for (auto dec : decoders) {
     std::string name = idToString(dec->get_id());
-    std::cout << name << "_FER,";
-    std::cout << name << "_CMP,";
-    std::cout << name << "_ADD,";
+    std::cout << name << "-FER,";
+    std::cout << name << "-CMP,";
+    std::cout << name << "-ADD,";
   }
   std::cout << std::endl;
 }

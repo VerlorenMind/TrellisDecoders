@@ -12,7 +12,8 @@ void usage() {
          "input_code_file - file containing length, dimension, generator and check matrix of the code\n"
          "run_file - file specifying run configuration\n"
          "start_stn - starting STN value\n"
-         "stop_stn - final STN value";
+         "stop_stn - final STN value\n"
+         "step_stn - increment step for STN ratio\n";
 }
 
 int main(int argc, char *argv[]) {

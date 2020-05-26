@@ -177,25 +177,15 @@ void echelonForm(unsigned int n, unsigned int k, int **x) {
   }
 }
 
-void comb_search(unsigned int n, unsigned int k, std::vector<int> &comb, std::vector<std::vector<int>> &combs) {
+void comb_search(unsigned int n, unsigned int k, int offset, std::vector<int> &comb, std::vector<std::vector<int>> &combs) {
   if(k == 0) {
     combs.push_back(comb);
     return;
   }
   else {
-    for(unsigned int i=0; i<n; ++i) {
-      bool flag = true;
-      for(auto j : comb) {
-        if(j == i) {
-          flag = false;
-          break;
-        }
-      }
-      if(!flag) {
-        continue;
-      }
+    for(unsigned int i=offset; i<n; ++i) {
       comb.push_back(i);
-      comb_search(n, k-1, comb, combs);
+      comb_search(n, k-1, i+1, comb, combs);
       comb.pop_back();
     }
   }
@@ -205,7 +195,7 @@ std::vector<std::vector<int>> combinations(unsigned int n, unsigned int k)
 {
   std::vector<std::vector<int>> combs(0);
   std::vector<int> comb(0);
-  comb_search(n, k, comb, combs);
+  comb_search(n, k, 0, comb, combs);
   return combs;
 }
 
