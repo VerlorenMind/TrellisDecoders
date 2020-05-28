@@ -29,6 +29,7 @@ std::stringstream matrixToSstream(unsigned int k, unsigned int n, T **a) {
 int **readMatrix(std::ifstream &input, unsigned int n, unsigned int k);
 
 void minspanForm(unsigned int n, unsigned int k, int **a);
+void minspanForm(unsigned int n, unsigned int k, int **a, std::vector<unsigned> &row_start, std::vector<unsigned> &row_end);
 
 unsigned int *findRanges(unsigned int n, unsigned int k, int **a);
 
