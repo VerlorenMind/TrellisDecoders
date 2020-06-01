@@ -23,7 +23,7 @@ double ViterbiDecoder::decode(double *x, int *u) {
   prev_layer[0] = 0;
   prev_layer_path[0] = 0;
   for (unsigned j = 0; j < n; j++) {
-    for (unsigned l = 0; l < trellis[j].size(); l++) {
+    for (unsigned l = 0; l < trellis[j+1].size(); l++) {
       cur_layer[l] = HUGE_VAL;
       cur_layer_path[l] = 0;
     }
@@ -40,7 +40,7 @@ double ViterbiDecoder::decode(double *x, int *u) {
           }
           if (metric < cur_layer[s1]) {
             cur_layer[s1] = metric;
-            cur_layer_path[s1] = prev_layer_path[l] ^ (uint64_t(1) << (j+1));
+            cur_layer_path[s1] = prev_layer_path[l] ^ (uint64_t(z) << (j));
           }
           ++op_cmp;
         };
@@ -49,9 +49,16 @@ double ViterbiDecoder::decode(double *x, int *u) {
     std::swap(prev_layer, cur_layer);
     std::swap(prev_layer_path, cur_layer_path);
   };
-  for(unsigned int i=0; i<n; ++i) {
+  for (unsigned int i = 0; i < n; ++i) {
     u[i] = (prev_layer_path[0] & (uint64_t(1) << i)) ? 1 : 0;
   }
   return prev_layer[0];
+}
+ViterbiDecoder::~ViterbiDecoder() {
+
+  delete[] prev_layer;
+  delete[] cur_layer;
+  delete[] prev_layer_path;
+  delete[] cur_layer_path;
 }
 

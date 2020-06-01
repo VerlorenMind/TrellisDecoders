@@ -7,6 +7,7 @@
 #include <iostream>
 #include <chrono>
 #include <OrderedStatisticsDecoder.h>
+#include <ViterbiDecoder.h>
 #include "Simulation.h"
 
 const double EPSILON = 0.0000001;
@@ -129,6 +130,10 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
         SoftDecoder *osd = new OrderedStatisticsDecoder(n, k, g, w);
         decoders.push_back(osd);
       }
+      case DecoderID::VITERBI: {
+        SoftDecoder *vit = new ViterbiDecoder(n, k, g);
+        decoders.push_back(vit);
+      }
     }
   }
   errors_by_decoder.resize(decoders.size());
@@ -233,8 +238,13 @@ void Simulation::add_decoder(DecoderID id) {
       decoders.push_back(osd);
       break;
     }
-    case DecoderID::KTKL: {
+    case DecoderID::VITERBI: {
+      SoftDecoder *vit = new ViterbiDecoder(n, k, g);
+      decoders.push_back(vit);
       break;
+    }
+    case DecoderID::KTKL: {
+      return;
     }
     case DecoderID::ERROR: {
       return;

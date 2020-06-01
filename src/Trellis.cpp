@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstring>
 #include <cassert>
+#include <iostream>
+#include <sstream>
 
 TrellisNode &TrellisLayer::operator[](unsigned int i) {
   return layer[i];
@@ -22,6 +24,9 @@ void TrellisLayer::init(unsigned int size, unsigned int num) {
 }
 unsigned TrellisLayer::size() {
   return layer_size;
+}
+TrellisLayer::~TrellisLayer() {
+  delete[] layer;
 }
 
 TrellisLayer &Trellis::operator[](unsigned int i) {
@@ -54,21 +59,27 @@ void Trellis::construct_from_check_matrix(unsigned int n, unsigned int k, int **
   }
 }
 */
-void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **g) {
+void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **gen) {
   trellis = new TrellisLayer[n + 1];
   std::vector<unsigned> row_start(n);
   std::vector<unsigned> row_end(n);
   unsigned *active_bits = new unsigned[k]; //the list of active input bits
   uint64_t *cw_0 = new uint64_t[1ull << (n / 2 + 1)];
   uint64_t *cw_1 = new uint64_t[1ull << (n / 2 + 1)];
-  // unsigned *num_of_active_bits = new unsigned[n + 1];
+  unsigned *num_of_active_bits = new unsigned[n + 1];
+  int **g = new int *[k];
+  for (unsigned int i = 0; i < k; ++i) {
+    g[i] = new int[n];
+    memcpy(g[i], gen[i], n * sizeof(int));
+  }
   minspanForm(n, k, g, row_start, row_end);
+  std::string tempstr = matrixToSstream(k, n, g).str();
   trellis = new TrellisLayer[n + 1];
   unsigned num_of_AB = 0, next_num_of_AB = 0;
   cw_0[0] = 0;
-  // num_of_active_bits[0] = 0;
+  num_of_active_bits[0] = 0;
   trellis[0].init(1ull << num_of_AB, 0);
-  for (unsigned j = 0; j <= n; j++) {
+  for (unsigned j = 0; j < n; j++) {
     size_t b = std::find(active_bits, active_bits + num_of_AB, row_end[j]) - active_bits;
     unsigned long long extraction_mask = (row_end[j] == ~0) ? ~0ull : ((1ull << b) - 1);
     if (row_start[j] != ~0) {
@@ -126,37 +137,42 @@ void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **g)
     };
     std::swap(cw_0, cw_1);
     num_of_AB = next_num_of_AB;
-    /*if (j < n) {
+    if (j < n) {
       num_of_active_bits[j + 1] = num_of_AB;
     }
-    */
     if (num_of_AB > max_layer_size)
       max_layer_size = num_of_AB;
-
-    /*
-    cout << "digraph G{\n";
-    for (unsigned j = 0; j < n; j++) {
-      for (unsigned s = 0; s < 1u << num_of_active_bits[j]; s++) {
-        if (trellis[j][s].next_node[0] != ~0)
-          cout << "S_" << j << '_' << s << "->" << "S_" << (j + 1) << '_'
-               << trellis[j][s].next_node[0] << "[style=dashed];\n";
-        if (trellis[j][s].next_node[1] != ~0)
-          cout << "S_" << j << '_' << s << "->" << "S_" << (j + 1) << '_'
-               << trellis[j][s].next_node[1] << "[style=solid];\n";
-      }
-    }
-    cout << "}\n===========\n";
-    */
   };
+
+  std::stringstream temp;
+  temp << "digraph G{\n";
+  for (unsigned j = 0; j < n; j++) {
+    for (unsigned s = 0; s < 1ull << num_of_active_bits[j]; s++) {
+      if (trellis[j][s].next_node[0] != ~0)
+        temp << "S_" << j << '_' << s << "->" << "S_" << (j + 1) << '_'
+                  << trellis[j][s].next_node[0] << "[style=dashed];\n";
+      if (trellis[j][s].next_node[1] != ~0)
+        temp << "S_" << j << '_' << s << "->" << "S_" << (j + 1) << '_'
+                  << trellis[j][s].next_node[1] << "[style=solid];\n";
+    }
+  }
+  temp << "}\n===========\n";
+  tempstr = temp.str();
+
   max_layer_size = 1ull << max_layer_size;
-  delete[]
-      cw_0;
-  delete[]
-      cw_1;
-  delete[]
-      active_bits;
+  delete[] cw_0;
+  delete[] cw_1;
+  delete[] active_bits;
+  for (unsigned int i = 0; i < k; ++i) {
+    delete[] g[i];
+  }
+  delete[] g;
+  delete[] num_of_active_bits;
 }
 unsigned long long Trellis::get_max_layer_size() {
   return max_layer_size;
+}
+Trellis::~Trellis() {
+  delete[] trellis;
 }
 

@@ -9,6 +9,7 @@ enum class DecoderID {
   BSD,
   KTKL,
   ORDERED_STATISTICS,
+  VITERBI,
 };
 
 static std::string idToString(DecoderID id) {
@@ -17,6 +18,7 @@ static std::string idToString(DecoderID id) {
     case DecoderID::BSD:return "bsd";
     case DecoderID::ORDERED_STATISTICS:return "ordered-statistics";
     case DecoderID::KTKL:return "ktkl";
+    case DecoderID::VITERBI:return "viterbi";
     default:return "";
   }
 }
@@ -29,6 +31,8 @@ static DecoderID stringToId(const std::string &name) {
     return DecoderID::KTKL;
   } else if (name == "ordered-statistics") {
     return DecoderID::ORDERED_STATISTICS;
+  } else if (name == "viterbi") {
+    return DecoderID::VITERBI;
   } else {
     return DecoderID::ERROR;
   }

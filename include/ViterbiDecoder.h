@@ -10,6 +10,7 @@ class ViterbiDecoder : public SoftDecoder {
   uint64_t *prev_layer_path, *cur_layer_path;
  public:
   ViterbiDecoder(unsigned int n, unsigned int k, int **g);
-  virtual double decode(double *x, int *u) override;
+  ~ViterbiDecoder();
+  double decode(double *x, int *u) override;
 };
 #endif //BEAST_INCLUDE_VITERBIDECODER_H_

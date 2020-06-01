@@ -104,6 +104,7 @@ void minspanForm(unsigned int n, unsigned int k, int **a, std::vector<unsigned> 
         rows[num++] = (unsigned int) j;
       }
     }
+    ++i;
     if (num == 0) {
       continue;
     } else {
@@ -114,7 +115,7 @@ void minspanForm(unsigned int n, unsigned int k, int **a, std::vector<unsigned> 
         }
         rows[0] = fixed_rows;
       }
-      row_start[i] = fixed_rows;
+      row_start[i-1] = fixed_rows;
       ++fixed_rows;
 
       // Adding fixed row to the unfixed rest of the matrix
@@ -124,7 +125,6 @@ void minspanForm(unsigned int n, unsigned int k, int **a, std::vector<unsigned> 
         }
       }
     }
-    ++i;
   }
   // Right side
   // Same stuff as above, but with different indices and without swapping rows
@@ -151,7 +151,7 @@ void minspanForm(unsigned int n, unsigned int k, int **a, std::vector<unsigned> 
     if (num == 0) {
       continue;
     } else {
-      row_end[i] = rows[0];
+      row_end[i+1] = rows[0];
       fixed_nums[fixed_rows++] = rows[0];
       for (unsigned int l = 1; l < num; ++l) {
         for (unsigned int j = 0; j < n; ++j) {

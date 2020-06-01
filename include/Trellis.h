@@ -14,6 +14,7 @@ class TrellisLayer {
   unsigned long layer_size;
   unsigned int layer_num;
  public:
+  ~TrellisLayer();
   void init(unsigned int size, unsigned int num);
   unsigned int size();
   TrellisNode& operator[](unsigned int i);
@@ -25,6 +26,7 @@ class Trellis {
   unsigned long long max_layer_size;
  public:
   Trellis();
+  ~Trellis();
   // void construct_from_check_matrix(unsigned int n, unsigned int k, int** h);
   void construct_from_gen_matrix(unsigned int n, unsigned int k, int**g);
   TrellisLayer& operator[](unsigned int i);
