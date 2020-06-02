@@ -62,7 +62,7 @@ TEST_CASE("VITERBI: Can decode non-zero word") {
   x[3] = -0.107348;
   x[4] = -1.7087;
   x[5] = -1.10187;
-  // True weight: 1.6324
+  // True weight: 1.6053
 
   std::string codeword = "000000";
 

@@ -1,10 +1,13 @@
 #include <fstream>
 #include <Utility.h>
+#include <Trellis.h>
 #include "Simulation.h"
 
 TEST_CASE("CONSTRUCTOR: Can read test matrix from file") {
   std::ifstream filename("../tests/test_matrix");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
   int answer[3][6] = {
@@ -25,7 +28,9 @@ TEST_CASE("CONSTRUCTOR: Can read test matrix from file") {
 
 TEST_CASE("CONSTRUCTOR: Minspan form for test matrix is achieved") {
   std::ifstream filename("../tests/test_matrix");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
   int answer[3][6] = {
@@ -48,7 +53,9 @@ TEST_CASE("CONSTRUCTOR: Minspan form for test matrix is achieved") {
 
 TEST_CASE("CONSTRUCTOR: Ranges for  test matrix can be found") {
   std::ifstream filename("../tests/test_matrix");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
 
@@ -70,7 +77,9 @@ TEST_CASE("CONSTRUCTOR: Ranges for  test matrix can be found") {
 
 TEST_CASE("CONSTRUCTOR: Can read RM(16,5) matrix from file") {
   std::ifstream filename("../data/reed-muller-16-1");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
 
@@ -94,7 +103,9 @@ TEST_CASE("CONSTRUCTOR: Can read RM(16,5) matrix from file") {
 
 TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) matrix is achieved") {
   std::ifstream filename("../data/reed-muller-16-1");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
 
@@ -121,7 +132,9 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) matrix is achieved") {
 
 TEST_CASE("CONSTRUCTOR: Ranges for RM(16, 5) matrix can be found") {
   std::ifstream filename("../data/reed-muller-16-1");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
   minspanForm(n, k, matrix);
@@ -149,7 +162,9 @@ TEST_CASE("CONSTRUCTOR: Ranges for RM(16, 5) matrix can be found") {
 
 TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
   std::ifstream filename("../data/reed-muller-16-1");
+  std::string name;
   unsigned int n, k;
+  std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
   // WARN("Read matrix:\n" << matrixToSstream<int>(k, n, matrix).str());
@@ -181,6 +196,28 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
       REQUIRE(answer[i][j] == matrix[i][j]);
     }
   }
+  for (unsigned int i = 0; i < k; ++i) {
+    delete[] matrix[i];
+  }
+  delete[] matrix;
+}
+
+TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
+  std::ifstream filename("../tests/test_matrix");
+  std::ofstream out;
+  std::string name;
+  unsigned int n, k;
+  std::getline(filename, name);
+  filename >> n >> k;
+  int **matrix = readMatrix(filename, n, k);
+  Trellis trel;
+  trel.construct_from_gen_matrix(n, k, matrix);
+
+  trel.reduce_to_weight(2);
+
+  out.open("../tests/trellis.gv");
+  trel.print_trellis(out);
+  out.close();
   for (unsigned int i = 0; i < k; ++i) {
     delete[] matrix[i];
   }
