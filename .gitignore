@@ -6,3 +6,5 @@ cmake-*
 *.eps
 todo
 *.sh
+*.png
+*.gv

@@ -1,4 +1,5 @@
 #include <fstream>
+#include <cstdlib>
 #include <Utility.h>
 #include <Trellis.h>
 #include "Simulation.h"
@@ -212,12 +213,17 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
   int **matrix = readMatrix(filename, n, k);
   Trellis trel;
   trel.construct_from_gen_matrix(n, k, matrix);
+  out.open("../tests/trellis.gv");
+  trel.print_trellis(out);
+  out.close();
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/before.png");
 
-  trel.reduce_to_weight(2);
+  trel.reduce_to_weight_dfs(3);
 
   out.open("../tests/trellis.gv");
   trel.print_trellis(out);
   out.close();
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/after.png");
   for (unsigned int i = 0; i < k; ++i) {
     delete[] matrix[i];
   }
