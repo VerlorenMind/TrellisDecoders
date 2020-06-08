@@ -4,7 +4,6 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
-
 template<class T>
 std::stringstream arrayToSstream(unsigned int size, T *a) {
   std::stringstream result;

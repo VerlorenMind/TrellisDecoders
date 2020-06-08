@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <Utility.h>
 #include <Trellis.h>
+#include "TestUtility.h"
 #include "Simulation.h"
 
 TEST_CASE("CONSTRUCTOR: Can read test matrix from file") {
@@ -204,10 +205,11 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
 }
 
 TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
-  std::ifstream filename("../tests/test_matrix");
+  std::ifstream filename("../data/reed-muller-32-1-bit-order");
   std::ofstream out;
   std::string name;
   unsigned int n, k;
+  unsigned int w = 14;
   std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
@@ -218,7 +220,9 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
   out.close();
   system("dot ../tests/trellis.gv -Tpng -o ../tests/before.png");
 
-  trel.reduce_to_weight_dfs(3);
+  trel.reduce_to_weight(w);
+
+  exhaustive_subtrellis_verification(n, k, matrix, trel, w);
 
   out.open("../tests/trellis.gv");
   trel.print_trellis(out);

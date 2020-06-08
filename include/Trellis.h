@@ -21,6 +21,7 @@ class TrellisLayer {
   unsigned int size();
   TrellisNode& operator[](unsigned int i);
   void delete_node(unsigned long long num);
+  void add_node();
   void shrink_to_fit();
 };
 
@@ -33,6 +34,7 @@ class Trellis {
   bool dfs_trellis_search(std::pair<unsigned int, unsigned long long> node,
                           std::vector<bool> *keep_node, unsigned int metric, unsigned int w,
                           std::vector<int> &path, std::vector<std::vector<int>> &paths_to_keep);
+  unsigned long long second_0_edge_to_end = ~0;
  public:
   Trellis();
   ~Trellis();
@@ -41,7 +43,7 @@ class Trellis {
   TrellisLayer& operator[](unsigned int i);
   unsigned long long get_max_layer_size();
   void print_trellis(std::ostream &out);
-  // void reduce_to_weight(unsigned int w);
+  void reduce_to_weight(unsigned int w);
   void reduce_to_weight_dfs(unsigned int w);
   void delete_node(unsigned int layer, unsigned long long num);
 };

@@ -42,6 +42,20 @@ void TrellisLayer::shrink_to_fit() {
     true_size = layer_size;
   }
 }
+void TrellisLayer::add_node() {
+  if(layer_size == true_size) {
+    TrellisNode *new_layer = new TrellisNode[layer_size + 1];
+    true_size = layer_size + 1;
+    memcpy(new_layer, layer, layer_size*sizeof(TrellisNode));
+    delete[] layer;
+    layer = new_layer;
+  }
+  for(unsigned z=0; z<2; ++z) {
+    layer[layer_size].next_node[z] = ~0;
+    layer[layer_size].prev_node[z] = ~0;
+  }
+  ++layer_size;
+}
 
 TrellisLayer &Trellis::operator[](unsigned int i) {
   return trellis[i];
@@ -52,27 +66,6 @@ Trellis::Trellis() {
   max_layer_size = 0;
 }
 
-/*
-void Trellis::construct_from_check_matrix(unsigned int n, unsigned int k, int **h) {
-  trellis = new TrellisLayer[n+1];
-  trellis[0].init(1, 0);
-  minspanForm(n, k, h);
-  unsigned int *ranges = findRanges(n, k , h);
-  unsigned int *active_bits = new unsigned int[k];
-  unsigned int num_of_act_bits = 0;
-  for(unsigned int i=1; i<=n; ++i) {
-    for(unsigned int j=0; j<k; ++j) {
-      if(ranges[2*j] < i && ranges[2*j+1]) {
-        active_bits[num_of_act_bits++] = j;
-      }
-    }
-    trellis[i].init((uint64_t(1) << num_of_act_bits), i);
-    for(unsigned int j=0; j<trellis[i-1].size(); ++j) {
-
-    }
-  }
-}
-*/
 void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **gen) {
   trellis_size = n + 1;
   trellis = new TrellisLayer[n + 1];
@@ -188,62 +181,6 @@ void Trellis::print_trellis(std::ostream &out) {
   }
   out << "}";
 }
-/*
-void Trellis::reduce_to_weight(unsigned int w) {
-  unsigned int *prev_layer = new unsigned int[max_layer_size];
-  unsigned int *cur_layer = new unsigned int[max_layer_size];
-  prev_layer[0] = 0;
-  std::ofstream out;
-  for (unsigned long j = 0; j <= trellis_size - 2; j++) {
-    for (unsigned l = 0; l < trellis[j+1].size(); l++) {
-      cur_layer[l] = ~0;
-    }
-    for (unsigned l = 0; l < trellis[j].size(); l++) {
-      if(j == trellis_size - 2 && trellis[j][l].next_node[1] != ~0) {
-        ++prev_layer[l];
-      }
-      if(prev_layer[l] > w) {
-        delete_node(j, l);
-        out.open("../tests/trellis.gv");
-        print_trellis(out);
-        out.close();
-        memmove(prev_layer + l, prev_layer + l + 1, (max_layer_size - l - 1) * sizeof(unsigned int));
-      }
-      else {
-        for (unsigned z = 0; z < 2; z++) {
-          unsigned long long s1 = trellis[j][l].next_node[z];
-          if (s1 != ~0) {
-            unsigned int metric = prev_layer[l] + z;
-            if(metric > w) {
-              trellis[j][l].next_node[z] = ~0;
-            }
-            else {
-              if (metric < cur_layer[s1]) {
-                cur_layer[s1] = metric;
-              }
-            }
-          };
-        };
-      }
-    }
-    std::swap(prev_layer, cur_layer);
-    trellis[j].shrink_to_fit();
-  };
-  for (long j = trellis_size - 2; j >=0; --j) {
-    for (unsigned l = 0; l < trellis[j].size(); l++) {
-      while(l < trellis[j].size() && trellis[j][l].next_node[0] == ~0 && trellis[j][l].next_node[1] == ~0) {
-        delete_node(j, l);
-        out.open("../tests/trellis.gv");
-        print_trellis(out);
-        out.close();
-      }
-    }
-    trellis[j].shrink_to_fit();
-  }
-  delete[] prev_layer;
-  delete[] cur_layer;
-}
-*/
 void Trellis::delete_node(unsigned int layer, unsigned long long num) {
   for (unsigned int z = 0; z < 2; ++z) {
     if (trellis[layer][num].prev_node[z] != ~0) {
@@ -263,6 +200,9 @@ void Trellis::delete_node(unsigned int layer, unsigned long long num) {
         trellis[layer + 1][trellis[layer][t].next_node[z]].prev_node[z] = t;
       }
     }
+  }
+  if(layer == trellis_size - 2 && num == second_0_edge_to_end) {
+    second_0_edge_to_end = ~0;
   }
 }
 bool Trellis::dfs_trellis_search(std::pair<unsigned int, unsigned long long> node,
@@ -299,7 +239,7 @@ bool Trellis::dfs_trellis_search(std::pair<unsigned int, unsigned long long> nod
 void Trellis::reduce_to_weight_dfs(unsigned int w) {
   std::vector<bool> *keep_node = new std::vector<bool>[trellis_size];
   std::vector<std::vector<int>> words_to_keep;
-  std::vector<int> word(trellis_size-1);
+  std::vector<int> word(trellis_size - 1);
   for (unsigned int i = 0; i < trellis_size; ++i) {
     keep_node[i].resize(trellis[i].size());
     std::fill(keep_node[i].begin(), keep_node[i].end(), false);
@@ -307,18 +247,29 @@ void Trellis::reduce_to_weight_dfs(unsigned int w) {
   dfs_trellis_search(std::make_pair(0, 0), keep_node, 0, w, word, words_to_keep);
   TrellisLayer *new_trellis = new TrellisLayer[trellis_size];
   for (unsigned int i = 0; i < trellis_size; ++i) {
+    unsigned long long trellis_state = 0;
     for (unsigned long long j = 0; j < trellis[i].size(); ++j) {
-      while (j < trellis[i].size() && !keep_node[i][j]) {
-        delete_node(i, j);
+      if(!keep_node[i][j]) {
+        delete_node(i, trellis_state);
+      }
+      else {
+        ++trellis_state;
       }
     }
     trellis[i].shrink_to_fit();
     new_trellis[i].init(trellis[i].size(), i);
   }
   unsigned long long state;
-  for(auto kept_word : words_to_keep) {
+/*
+  std::ofstream out;
+  out.open("../tests/trellis.gv");
+  print_trellis(out);
+  out.close();
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/inter2.png");
+*/
+  for (auto kept_word : words_to_keep) {
     state = 0;
-    for(unsigned int i=0; i<trellis_size-1; ++i) {
+    for (unsigned int i = 0; i < trellis_size - 1; ++i) {
       new_trellis[i][state].next_node[kept_word[i]] = trellis[i][state].next_node[kept_word[i]];
       state = new_trellis[i][state].next_node[kept_word[i]];
     }
@@ -326,5 +277,110 @@ void Trellis::reduce_to_weight_dfs(unsigned int w) {
   delete[] trellis;
   trellis = new_trellis;
   delete[] keep_node;
+}
+
+void Trellis::reduce_to_weight(unsigned int w) {
+  unsigned int **min_weight_to, **min_weight_from;
+  min_weight_to = new unsigned int*[trellis_size];
+  min_weight_from = new unsigned int*[trellis_size];
+  for(unsigned int i=0; i<trellis_size; ++i) {
+    min_weight_to[i] = new unsigned int[trellis[i].size()];
+    min_weight_from[i] = new unsigned int[trellis[i].size()];
+    // Filling the arrays with maximum values
+    memset(min_weight_to[i], ~0, trellis[i].size() * sizeof(unsigned int));
+    memset(min_weight_from[i], ~0, trellis[i].size() * sizeof(unsigned int));
+  }
+  min_weight_to[0][0] = 0;
+  min_weight_from[trellis_size-1][0] = 0;
+  // Finding minimum path weight to all nodes from the first
+  for (unsigned j = 0; j < trellis_size - 1; j++) {
+    for (unsigned l = 0; l < trellis[j].size(); l++) {
+      for (unsigned z = 0; z < 2; z++) {
+        unsigned long long s1 = trellis[j][l].next_node[z];
+        if (s1 != ~0) {
+          unsigned int metric = min_weight_to[j][l] + z;
+          if (metric < min_weight_to[j+1][s1]) {
+            min_weight_to[j+1][s1] = metric;
+          }
+        }
+      }
+    }
+  }
+  // Finding minimum path weight from all nodes to the final
+  for (unsigned j = trellis_size - 1; j > 0; j--) {
+    for (unsigned l = 0; l < trellis[j].size(); l++) {
+      for (unsigned z = 0; z < 2; z++) {
+        unsigned long long s1 = trellis[j][l].prev_node[z];
+        if (s1 != ~0) {
+          unsigned int metric = min_weight_from[j][l] + z;
+          if (metric < min_weight_from[j-1][s1]) {
+            min_weight_from[j-1][s1] = metric;
+          }
+        }
+      }
+    }
+  }
+  // Purging trellis
+  for(unsigned i = 1; i < trellis_size; ++i) {
+    unsigned long long state = 0;
+    unsigned long long original_size = trellis[i].size();
+    for(unsigned long long l = 0; l < original_size; ++l) {
+      // Purging if the weight of the minimum path is greater than w
+      if(min_weight_to[i][l] + min_weight_from[i][l] > w) {
+        delete_node(i, state);
+      }
+      // If no incoming edges, purge
+      else if(trellis[i][state].prev_node[0] == ~0 && trellis[i][state].prev_node[1] == ~0) {
+        delete_node(i, state);
+      }
+      // Purging branches of paths with excessive weight
+      else {
+        unsigned long long next_state;
+        for(unsigned z=0; z<2; ++z) {
+          next_state = trellis[i][state].next_node[z];
+          if(next_state != ~0 && min_weight_to[i][l] + min_weight_from[i+1][next_state] + z > w) {
+            trellis[i][state].next_node[z] = ~0;
+            trellis[i+1][next_state].prev_node[z] = ~0;
+          }
+        }
+        ++state;
+      }
+    }
+  }
+  // Dealing with leftover paths of weight above w
+  // Finding the first non-zero merging into all-zero path
+  unsigned start_index = 1;
+  for(; start_index<trellis_size-1; ++start_index) {
+    if(trellis[start_index][0].prev_node[1] != ~0) {
+      trellis[start_index].shrink_to_fit();
+      break;
+    }
+  }
+  // Adding additional nodes to reroute the mergings
+  if(start_index < trellis_size - 1) {
+    for (unsigned i = start_index; i < trellis_size - 1; ++i) {
+      trellis[i].add_node();
+      if (i > start_index) {
+        trellis[i][trellis[i].size() - 1].prev_node[0] = trellis[i - 1].size() - 1;
+        trellis[i - 1][trellis[i - 1].size() - 1].next_node[0] = trellis[i].size() - 1;
+      }
+      unsigned long long merging_state = trellis[i][0].prev_node[1];
+      if (merging_state != ~0) {
+        trellis[i][0].prev_node[1] = ~0;
+        trellis[i][trellis[i].size() - 1].prev_node[1] = merging_state;
+        trellis[i - 1][merging_state].next_node[1] = trellis[i].size() - 1;
+      }
+      trellis[i].shrink_to_fit();
+    }
+    trellis[trellis_size - 2][trellis[trellis_size - 2].size() - 1].next_node[0] = 0;
+    second_0_edge_to_end = trellis[trellis_size - 2].size() - 1;
+    // TODO: Fix the prev_node in the last node
+  }
+  for(unsigned i = 0; i<trellis_size; ++i) {
+    delete[] min_weight_to[i];
+    delete[] min_weight_from[i];
+  }
+  delete[] min_weight_to;
+  delete[] min_weight_from;
 }
 
