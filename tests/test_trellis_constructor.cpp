@@ -209,7 +209,7 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
   std::ofstream out;
   std::string name;
   unsigned int n, k;
-  unsigned int w = 14;
+  unsigned int w = 16;
   std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);

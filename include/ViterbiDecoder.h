@@ -5,10 +5,10 @@
 #include "Trellis.h"
 class ViterbiDecoder : public SoftDecoder {
  private:
-  Trellis trellis;
   double *prev_layer, *cur_layer;
   uint64_t *prev_layer_path, *cur_layer_path;
  public:
+  Trellis trellis;
   ViterbiDecoder(unsigned int n, unsigned int k, int **g);
   ~ViterbiDecoder();
   double decode(double *x, int *u) override;

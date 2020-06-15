@@ -61,4 +61,3 @@ ViterbiDecoder::~ViterbiDecoder() {
   delete[] prev_layer_path;
   delete[] cur_layer_path;
 }
-
