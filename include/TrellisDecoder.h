@@ -32,7 +32,7 @@ class TrellisDecoder : public SoftDecoder {
  public:
   TrellisDecoder(unsigned int n, unsigned int k, std::ifstream &filename);
   TrellisDecoder(unsigned int n, unsigned int k, int **checkmatrix);
-  double decode(double *x, int *u) override = 0;
-  ~TrellisDecoder();
+  double decode(const double *x, int *u) override = 0;
+  ~TrellisDecoder() override;
 };
 #endif //BEAST_TRELLISDECODER_H

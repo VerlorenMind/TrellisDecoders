@@ -205,11 +205,11 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
 }
 
 TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
-  std::ifstream filename("../data/reed-muller-32-1-bit-order");
+  std::ifstream filename("../tests/test_matrix");
   std::ofstream out;
   std::string name;
   unsigned int n, k;
-  unsigned int w = 16;
+  unsigned int w = 3;
   std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
@@ -221,13 +221,13 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
   system("dot ../tests/trellis.gv -Tpng -o ../tests/before.png");
 
   trel.reduce_to_weight(w);
-
-  exhaustive_subtrellis_verification(n, k, matrix, trel, w);
-
   out.open("../tests/trellis.gv");
   trel.print_trellis(out);
   out.close();
   system("dot ../tests/trellis.gv -Tpng -o ../tests/after.png");
+
+  exhaustive_subtrellis_verification(n, k, matrix, trel, w);
+
   for (unsigned int i = 0; i < k; ++i) {
     delete[] matrix[i];
   }

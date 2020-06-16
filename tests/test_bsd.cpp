@@ -88,79 +88,79 @@ TEST_CASE("BSD: Can decode non-zero word") {
   delete[] y;
 }
 
-void inline test_bsd_decoder(int tests, double stn, double delta, std::string filename) {
+void inline test_bsd_decoder(int tests, double stn, std::string filename) {
   std::ifstream in(filename);
   Simulation sim(in, 0, tests);
-  sim.add_decoder(DecoderID::BSD);
+  sim.add_bsd_decoder();
   sim.setSTN(stn);
   sim.test_run();
 }
 
 TEST_CASE("BSD: Can decode series of random words with minimal noise") {
-  test_bsd_decoder(1000, 100, 0.5, "../tests/test_matrix");
+  test_bsd_decoder(1000, 100, "../tests/test_matrix");
 }
 
 TEST_CASE("BSD: Can decode series of random words with some noise") {
-  test_bsd_decoder(1000, 1, 0.5, "../tests/test_matrix");
+  test_bsd_decoder(1000, 1, "../tests/test_matrix");
 }
 
 TEST_CASE("BSD: Can decode BCH(31, 16, 7)") {
-  test_bsd_decoder(1000, 1, 0.5, "../data/bch-31-16-7");
+  test_bsd_decoder(1000, 1, "../data/bch-31-16-7");
 }
 
 TEST_CASE("BSD: Can decode BCH(31, 21, 5)") {
-  test_bsd_decoder(1000, 1, 0.5, "../data/bch-31-21-5");
+  test_bsd_decoder(1000, 1, "../data/bch-31-21-5");
 }
 
 TEST_CASE("BSD: Can decode BCH(63, 7, 57)") {
-  test_bsd_decoder(1000, 5, 0.5, "../data/bch-63-7-57");
+  test_bsd_decoder(1000, 5, "../data/bch-63-7-57");
 }
 
 TEST_CASE("BSD: Can decode BCH(63, 16, 23)") {
-  test_bsd_decoder(1000, 1, 0.5, "../data/bch-63-16-23");
+  test_bsd_decoder(1000, 1, "../data/bch-63-16-23");
 }
 //
 //TEST_CASE("BSD: Can decode BCH(63, 30, 13)")
 //{
-//    test_bsd_decoder(1000, 1, 0.5, "../data/bch-63-30-13");
+//    test_bsd_decoder(1000, 1,  "../data/bch-63-30-13");
 //}
 //
 //TEST_CASE("BSD: Can decode BCH(63, 39, 9)")
 //{
-//    test_bsd_decoder(1000, 1, 0.5, "../data/bch-63-39-9");
+//    test_bsd_decoder(1000, 1,  "../data/bch-63-39-9");
 //}
 
 TEST_CASE("BSD: Can decode RM(16, 5)") {
-  test_bsd_decoder(1000, 1, 0.5, "../data/reed-muller-16-1");
+  test_bsd_decoder(1000, 1, "../data/reed-muller-16-1");
 }
 
 TEST_CASE("BSD: Can decode RM(32, 6)") {
-  test_bsd_decoder(1000, 100, 0.5, "../data/reed-muller-32-1");
+  test_bsd_decoder(1000, 100, "../data/reed-muller-32-1");
 }
 TEST_CASE("BSD: Can decode EBCH(32, 16)") {
-  test_bsd_decoder(1000, 1, 0.5, "../data/bch-32-16");
+  test_bsd_decoder(1000, 1, "../data/bch-32-16");
 }
 
 TEST_CASE("BSD: Can decode EBCH(32, 21)") {
-  test_bsd_decoder(1000, 1, 0.5, "../data/bch-32-21");
+  test_bsd_decoder(1000, 1, "../data/bch-32-21");
 }
 
 TEST_CASE("BSD: Can decode EBCH(32, 16) in SBO") {
-  test_bsd_decoder(1000, 100, 0.5, "../data/bch-32-16-bit-order");
+  test_bsd_decoder(1000, 100, "../data/bch-32-16-bit-order");
 }
 
 TEST_CASE("BSD: Can decode EBCH(32, 21) in SBO") {
-  test_bsd_decoder(1000, 100, 0.5, "../data/bch-32-21-bit-order");
+  test_bsd_decoder(1000, 100, "../data/bch-32-21-bit-order");
 }
 
 TEST_CASE("BSD: Can decode EBCH(64, 57) in SBO") {
-  test_bsd_decoder(1000, 100, 0.5, "../data/bch-64-57-bit-order");
+  test_bsd_decoder(1000, 100, "../data/bch-64-57-bit-order");
 }
 
 TEST_CASE("BSD: Can decode EBCH(64, 51) in SBO") {
-  test_bsd_decoder(1000, 100, 0.5, "../data/bch-64-51-bit-order");
+  test_bsd_decoder(1000, 100, "../data/bch-64-51-bit-order");
 }
 
 TEST_CASE("BSD: Can decode EBCH(64, 45) in SBO") {
-  test_bsd_decoder(1000, 100, 0.5, "../data/bch-64-45-bit-order");
+  test_bsd_decoder(1000, 100, "../data/bch-64-45-bit-order");
 }

@@ -38,7 +38,7 @@ BSDDecoder::~BSDDecoder() {
   delete[] bkw_tree;
 }
 
-double BSDDecoder::decode(double *x, int *u) {
+double BSDDecoder::decode(const double *x, int *u) {
   op_add = 0;
   op_cmp = 0;
 

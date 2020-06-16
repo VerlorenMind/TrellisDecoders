@@ -20,7 +20,7 @@ TEST_CASE("SIM: Can create empty simulation") {
 TEST_CASE("SIM: Can add decoder to the simulation") {
   std::ifstream in("../tests/test_matrix");
   Simulation sim(in, 10, 10, 0);
-  sim.add_decoder(DecoderID::BSD);
+  sim.add_bsd_decoder();
   SoftDecoder *dec = sim.get_decoder(DecoderID::BSD);
 
   REQUIRE(dec != nullptr);
@@ -46,7 +46,7 @@ TEST_CASE("SIM: Can read spec file") {
 TEST_CASE("SIM: Can launch a simple run") {
   std::ifstream in("../tests/test_matrix");
   Simulation sim(in, 10, 10, 0);
-  sim.add_decoder(DecoderID::BSD);
+  sim.add_bsd_decoder();
   sim.setSTN(100);
 
   sim.run();

@@ -88,7 +88,7 @@ TEST_CASE("OSD: Can decode non-zero word") {
 void inline test_osd_decoder(int tests, double stn, int w, std::string filename) {
   std::ifstream in(filename);
   Simulation sim(in, 0, tests);
-  sim.add_decoder(DecoderID::ORDERED_STATISTICS);
+  sim.add_ordered_statistics_decoder(w);
   ((OrderedStatisticsDecoder *) sim.get_decoder(DecoderID::ORDERED_STATISTICS))->set_max_weight(w);
   sim.setSTN(stn);
   sim.test_run();

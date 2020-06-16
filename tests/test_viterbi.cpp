@@ -88,7 +88,7 @@ TEST_CASE("VITERBI: Can decode non-zero word") {
 void inline test_viterbi_decoder(int tests, double stn, const std::string &filename) {
   std::ifstream in(filename);
   Simulation sim(in, 0, tests);
-  sim.add_decoder(DecoderID::VITERBI);
+  sim.add_viterbi_decoder();
   sim.setSTN(stn);
   sim.test_run();
 }

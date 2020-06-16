@@ -28,7 +28,7 @@ class BeastDecoder : public TrellisDecoder {
  public:
   BeastDecoder(unsigned int n, unsigned int k, std::ifstream &filename, double delta);
   BeastDecoder(unsigned int n, unsigned int k, int **h, double delta);
-  double decode(double *x, int *u) override;
+  double decode(const double *x, int *u) override;
   void set_delta(double d);
   double get_delta();
   ~BeastDecoder();

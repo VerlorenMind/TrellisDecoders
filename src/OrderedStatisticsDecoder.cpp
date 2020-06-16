@@ -32,7 +32,7 @@ OrderedStatisticsDecoder::~OrderedStatisticsDecoder() {
   delete[] c_best;
 }
 
-double OrderedStatisticsDecoder::decode(double *x, int *u) {
+double OrderedStatisticsDecoder::decode(const double *x, int *u) {
   op_cmp = 0;
   op_add = 0;
   for (unsigned int i = 0; i < n; ++i) {

@@ -90,8 +90,7 @@ TEST_CASE("BEAST: Can decode non-zero word") {
 void inline test_beast_decoder(int tests, double stn, double delta, const std::string &filename) {
   std::ifstream in(filename);
   Simulation sim(in, 0, tests);
-  sim.add_decoder(DecoderID::BEAST);
-  ((BeastDecoder *) sim.get_decoder(DecoderID::BEAST))->set_delta(delta);
+  sim.add_beast_decoder(delta);
   sim.setSTN(stn);
   sim.test_run();
 }

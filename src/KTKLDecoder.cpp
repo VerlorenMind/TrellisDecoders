@@ -12,9 +12,10 @@ KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsig
   gen_metrics = new double[buf_size + 1];
   gen_words = new int *[buf_size + 1];
   best_words = new int *[buf_size];
+  best_metrics = new double[buf_size];
   l_weights = new int[buf_size];
   l_words = new int*[buf_size];
-  temp_y = new double[n];
+  c_best = new int[n];
   for (unsigned int i = 0; i < buf_size; ++i) {
     gen_words[i] = new int[n];
     best_words[i] = new int[n];
@@ -22,8 +23,10 @@ KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsig
   gen_words[buf_size] = new int[n];
   check = new int *[n - k];
   for (unsigned int i = 0; i < n - k; ++i) {
+    check[i] = new int[n];
     memcpy(check[i], h[i], sizeof(int) * n);
   }
+  weight_profile.resize(0);
   int word_weight = 0;
   for (uint64_t infoword = 0; infoword < (uint64_t(1) << k); ++infoword) {
     word_weight = 0;
@@ -38,7 +41,10 @@ KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsig
     while (iter != weight_profile.end() && *iter < word_weight) {
       ++iter;
     }
-    if (*iter != word_weight) {
+    if(iter == weight_profile.end()) {
+      weight_profile.push_back(word_weight);
+    }
+    else if (*iter != word_weight) {
       weight_profile.insert(iter, word_weight);
     }
   }
@@ -51,16 +57,18 @@ KTKLDecoder::~KTKLDecoder() {
     delete[] best_words[i];
   }
   delete[] best_words;
+  delete[] best_metrics;
+  delete[] gen_words[buf_size];
   delete[] gen_words;
   for (unsigned int i = 0; i < n - k; ++i) {
     delete[] check[i];
   }
   delete[] check;
-  delete[] temp_y;
   delete[] l_weights;
   delete[] l_words;
+  delete[] c_best;
 }
-double KTKLDecoder::decode(double *y, int *u) {
+double KTKLDecoder::decode(const double *y, int *u) {
   op_add = 0;
   op_cmp = 0;
 
@@ -69,15 +77,7 @@ double KTKLDecoder::decode(double *y, int *u) {
     ++op_cmp;
     beta[i] = fabs(y[i]);
   }
-  sorted_beta_ind.resize(n);
-  for (unsigned int i = 0; i < n; ++i) {
-    sorted_beta_ind[i] = i;
-  }
-  std::sort(sorted_beta_ind.begin(), sorted_beta_ind.end(),
-            [this](const int &a, const int &b) {
-              ++op_cmp;
-              return beta[a] > beta[b];
-            });
+
   // Calculating the syndrome of the hard decision
   unsigned int synd_weight = 0;
   for (unsigned int j = 0; j < n - k; ++j) {
@@ -93,6 +93,16 @@ double KTKLDecoder::decode(double *y, int *u) {
     }
     return 0;
   }
+  // Sorting betas and storing permutation to use it to calculate l
+  sorted_beta_ind.resize(n);
+  for (unsigned int i = 0; i < n; ++i) {
+    sorted_beta_ind[i] = i;
+  }
+  std::sort(sorted_beta_ind.begin(), sorted_beta_ind.end(),
+            [this](const int &a, const int &b) {
+              ++op_cmp;
+              return beta[a] > beta[b];
+            });
   // Generating initial codeword
   int g = 0;
   double best_metric;
@@ -104,13 +114,21 @@ double KTKLDecoder::decode(double *y, int *u) {
   bool replaced_best = true;
   while (true) {
     // Test optimality of c_best
-    for(unsigned int i = 0; i < best_words_count-1; ++i) {
-      l_words[i] = best_words[i];
-      l_weights[i] = weight_profile[order+1];
+    double l1;
+    if(best_words_count != 0) {
+      for (unsigned int i = 0; i < best_words_count - 1; ++i) {
+        l_words[i] = best_words[i];
+        l_weights[i] = weight_profile[order + 1];
+      }
+      l_words[best_words_count - 1] = gen_words[g];
+      l_weights[best_words_count - 1] = weight_profile[1];
+      l1 = l(l_words, best_words_count);
     }
-    l_words[best_words_count-1] = gen_words[g];
-    l_weights[best_words_count-1] = weight_profile[1];
-    double l1 = l(l_words, best_words_count);
+    else {
+      l_words[0] = gen_words[g];
+      l_weights[0] = weight_profile[1];
+      l1 = l(l_words, best_words_count+1);
+    }
     for(unsigned int i = 0; i < best_words_count; ++i) {
       l_words[i] = best_words[i];
       l_weights[i] = weight_profile[order+1];
@@ -130,16 +148,19 @@ double KTKLDecoder::decode(double *y, int *u) {
     ++op_cmp;
     // Updating bG
     if (!replaced_best) {
+      // If buffer is empty, just put the word there
       if (best_words_count == 0) {
         memcpy(best_words[0], gen_words[g], n * sizeof(int));
         best_metrics[0] = gen_metrics[g];
         ++best_words_count;
       } else {
+        // Finding the place to insert the word
         unsigned int i = 0;
         for (i = 0; i < best_words_count && best_metrics[i] > gen_metrics[g]; ++i) {
           ++op_cmp;
         }
         ++op_cmp;
+        // If there is still space in the buffer, make room for the new word
         if (best_words_count < buf_size) {
           for (unsigned int j = best_words_count - 1; j >= i; --j) {
             memcpy(best_words[j], best_words[j - 1], n * sizeof(int));
@@ -148,7 +169,10 @@ double KTKLDecoder::decode(double *y, int *u) {
           ++best_words_count;
           memcpy(best_words[i - 1], gen_words[g], n * sizeof(int));
           best_metrics[i - 1] = gen_metrics[g];
-        } else if (i > 0) {
+        }
+        // If not, if there's inferior words in the buffer with higher metric, delete the one with the highest and insert the new one
+        // Otherwise, don't insert anything
+        else if (i > 0) {
           for (int j = 0; j < i - 1; ++j) {
             memcpy(best_words[j], best_words[j + 1], n * sizeof(int));
             best_metrics[j] = best_metrics[j + 1];
@@ -159,13 +183,6 @@ double KTKLDecoder::decode(double *y, int *u) {
       }
     }
     // If not optimal, search trellis
-    // Adding c_last to the hard decision of y (inverting bits)
-    memcpy(temp_y, y, n * sizeof(double));
-    for (unsigned int i = 0; i < n; ++i) {
-      if (gen_words[g][i]) {
-        temp_y[i] = -temp_y[i];
-      }
-    }
     // If buffer is full, shifting saved words to make space for a new one
     if (g == buf_size) {
       for (int i = buf_size; i > 0; --i) {
@@ -174,11 +191,12 @@ double KTKLDecoder::decode(double *y, int *u) {
     } else {
       ++g;
     }
-    gen_metrics[g] = viterbi.decode(temp_y, gen_words[g]);
+    // Searching subtrellis
+    gen_metrics[g] = viterbi.decode_around(y, gen_words[g], gen_words[g-1]);
     op_cmp += viterbi.op_cmp;
     op_add += viterbi.op_add;
     // Test stopping condition
-    if (g > 2) {
+    if (g >= 2) {
       if (gen_metrics[g] == gen_metrics[g - 2]) {
         break;
       }

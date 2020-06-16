@@ -370,11 +370,14 @@ void Trellis::reduce_to_weight(unsigned int w) {
         trellis[i][trellis[i].size() - 1].prev_node[1] = merging_state;
         trellis[i - 1][merging_state].next_node[1] = trellis[i].size() - 1;
       }
-      trellis[i].shrink_to_fit();
     }
     trellis[trellis_size - 2][trellis[trellis_size - 2].size() - 1].next_node[0] = 0;
     second_0_edge_to_end = trellis[trellis_size - 2].size() - 1;
-    // TODO: Fix the prev_node in the last node
+  }
+  // Deleting the all-zero word
+  for(unsigned i = trellis_size-2; i >= 0 && trellis[i][0].next_node[1] == ~0; --i) {
+    delete_node(i, 0);
+    trellis[i].shrink_to_fit();
   }
   for(unsigned i = 0; i<trellis_size; ++i) {
     delete[] min_weight_to[i];

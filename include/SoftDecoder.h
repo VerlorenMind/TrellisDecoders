@@ -14,8 +14,8 @@ class SoftDecoder {
   long op_cmp, op_add;
   double metric(int x, unsigned int pos);
   SoftDecoder(unsigned int n, unsigned int k);
-  ~SoftDecoder();
-  virtual double decode(double *x, int *u) = 0;
+  virtual ~SoftDecoder();
+  virtual double decode(const double *x, int *u) = 0;
   DecoderID get_id() { return id; };
 };
 #endif //BEAST_ISOFTDECODER_H

@@ -110,7 +110,7 @@ InsertionStatus BeastDecoder::insert_node(const Node &node) {
   return status;
 }
 
-double BeastDecoder::decode(double *x, int *u) {
+double BeastDecoder::decode(const double *x, int *u) {
   op_add = 0;
   op_cmp = 0;
 

@@ -8,6 +8,7 @@
 #include <chrono>
 #include <OrderedStatisticsDecoder.h>
 #include <ViterbiDecoder.h>
+#include <KTKLDecoder.h>
 #include "Simulation.h"
 
 const double EPSILON = 0.0000001;
@@ -220,40 +221,6 @@ SoftDecoder *Simulation::get_decoder(DecoderID id) {
   }
   return nullptr;
 }
-
-void Simulation::add_decoder(DecoderID id) {
-  switch (id) {
-    case DecoderID::BEAST: {
-      SoftDecoder *beast = new BeastDecoder(n, k, h, 0.5);
-      decoders.push_back(beast);
-      break;
-    }
-    case DecoderID::BSD: {
-      SoftDecoder *bsd = new BSDDecoder(n, k, h);
-      decoders.push_back(bsd);
-      break;
-    }
-    case DecoderID::ORDERED_STATISTICS: {
-      SoftDecoder *osd = new OrderedStatisticsDecoder(n, k, g, 0);
-      decoders.push_back(osd);
-      break;
-    }
-    case DecoderID::VITERBI: {
-      SoftDecoder *vit = new ViterbiDecoder(n, k, g);
-      decoders.push_back(vit);
-      break;
-    }
-    case DecoderID::KTKL: {
-      return;
-    }
-    case DecoderID::ERROR: {
-      return;
-    }
-  }
-  errors_by_decoder.resize(decoders.size());
-  cmp_ops_by_decoder.resize(decoders.size());
-  add_ops_by_decoder.resize(decoders.size());
-}
 void Simulation::setSTN(double stn) {
   this->stn = stn;
   dev = sqrt((1 / (((1.0 * k) / n) * pow(10, stn / 10))) / 2);
@@ -274,8 +241,8 @@ void Simulation::test_run() {
     encode();
     INFO("Coded word: " << arrayToSstream<int>(n, ux).str());
     apply_noise();
-    INFO("Coded word syndrome: " << arrayToSstream<int>(n - k, synd).str());
     REQUIRE(calculate_syndrome(ux) == 0);
+    INFO("Coded word syndrome: " << arrayToSstream<int>(n - k, synd).str());
     INFO("Coded word with noise: " << arrayToSstream<double>(n, x).str());
     metric = 0;
     for (unsigned int i = 0; i < n; ++i) {
@@ -367,5 +334,28 @@ unsigned int Simulation::get_code_dimension() {
 std::string Simulation::get_code_name() {
   return code_name;
 }
+void Simulation::add_beast_decoder(double delta) {
+  SoftDecoder *beast = new BeastDecoder(n, k, h, delta);
+  decoders.push_back(beast);
+}
+void Simulation::add_bsd_decoder() {
+  SoftDecoder *bsd = new BSDDecoder(n, k, h);
+  decoders.push_back(bsd);
+}
+void Simulation::add_viterbi_decoder() {
+  SoftDecoder *vit = new ViterbiDecoder(n, k, g);
+  decoders.push_back(vit);
+}
+void Simulation::add_ktkl_decoder(int w, int buf_size) {
+  SoftDecoder *ktkl = new KTKLDecoder(n, k, g, h, w, buf_size);
+  decoders.push_back(ktkl);
+}
+void Simulation::add_ordered_statistics_decoder(int order) {
+  SoftDecoder *osd = new OrderedStatisticsDecoder(n, k, g, order);
+  decoders.push_back(osd);
+}
+
+
+
 
 

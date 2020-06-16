@@ -38,7 +38,12 @@ class Simulation {
   ~Simulation();
   void run();
   SoftDecoder *get_decoder(DecoderID id);
-  void add_decoder(DecoderID id);
+  // void add_decoder(DecoderID id);
+  void add_beast_decoder(double delta);
+  void add_bsd_decoder();
+  void add_viterbi_decoder();
+  void add_ktkl_decoder(int w, int buf_size);
+  void add_ordered_statistics_decoder(int order);
   void setSTN(double stn);
 #ifdef CATCH_TESTING
   void test_run();

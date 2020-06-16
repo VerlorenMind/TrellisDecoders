@@ -10,7 +10,14 @@ ViterbiDecoder::ViterbiDecoder(unsigned int n, unsigned int k, int **g) : SoftDe
   prev_layer_path = new uint64_t[trellis.get_max_layer_size()];
   cur_layer_path = new uint64_t[trellis.get_max_layer_size()];
 }
-double ViterbiDecoder::decode(double *x, int *u) {
+double ViterbiDecoder::decode(const double *x, int *u) {
+  int *c = new int[n];
+  memset(c, 0, sizeof(int)*n);
+  double res = decode_around(x, u, c);
+  delete[] c;
+  return res;
+}
+double ViterbiDecoder::decode_around(const double *x, int *u, const int *c) {
   op_add = 0;
   op_cmp = 0;
 
@@ -32,7 +39,7 @@ double ViterbiDecoder::decode(double *x, int *u) {
         unsigned long long s1 = trellis[j][l].next_node[z];
         if (s1 != ~0) {
           double metric;
-          if (z ^ alpha[j]) {
+          if (z ^ c[j] ^ alpha[j]) {
             metric = prev_layer[l] + beta[j];
             ++op_add;
           } else {
@@ -40,7 +47,7 @@ double ViterbiDecoder::decode(double *x, int *u) {
           }
           if (metric < cur_layer[s1]) {
             cur_layer[s1] = metric;
-            cur_layer_path[s1] = prev_layer_path[l] ^ (uint64_t(z) << (j));
+            cur_layer_path[s1] = prev_layer_path[l] ^ (uint64_t(z ^ c[j]) << (j));
           }
           ++op_cmp;
         };

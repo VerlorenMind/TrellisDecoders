@@ -14,7 +14,7 @@ class OrderedStatisticsDecoder : public SoftDecoder {
  public:
   OrderedStatisticsDecoder(unsigned int n, unsigned int k, int **gen_matrix, int w);
   ~OrderedStatisticsDecoder();
-  double decode(double *x, int *u) override;
+  double decode(const double *x, int *u) override;
   void set_max_weight(int w);
 };
 #endif //BEAST_INCLUDE_ORDEREDSTATISTICSDECODER_H_
