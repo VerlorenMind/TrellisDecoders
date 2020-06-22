@@ -1,6 +1,6 @@
 #include "TestUtility.h"
 
-void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g, Trellis &trellis, unsigned int w) {
+void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g, Trellis &trellis, unsigned int w, int** check) {
   int *codeword = new int[n];
   int word_weight = 0;
   for(uint64_t infoword=1; infoword<(uint64_t(1)<< k); ++infoword) {
@@ -13,6 +13,19 @@ void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g,
       }
       word_weight += temp ? 1 : 0;
       codeword[j] = temp ? 1 : 0;
+    }
+    if(check != nullptr) {
+      unsigned int synd_weight = 0;
+      for (unsigned int j = 0; j < n - k; ++j) {
+        int temp = 0;
+        for (unsigned int i = 0; i < n; ++i) {
+          temp ^= codeword[i] & check[j][i];
+        }
+        synd_weight += temp;
+      }
+      INFO("Infoword: " << std::bitset<64>(infoword).to_string());
+      INFO("Codeword: " << arrayToSstream<int>(n, codeword).str());
+      REQUIRE(synd_weight == 0);
     }
     bool should_be_present = word_weight <= w;
     bool present = true;
@@ -27,12 +40,8 @@ void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g,
     INFO("Infoword: " << std::bitset<64>(infoword).to_string());
     INFO("Codeword: " << arrayToSstream<int>(n, codeword).str());
     INFO("Weight: " << word_weight);
-    if(present) {
-      INFO("Present");
-    }
-    if(should_be_present) {
-      INFO("Should be present");
-    }
+    INFO("Present: " << present);
+    INFO("Should be present: " <<should_be_present);
     CHECK(((present && should_be_present) || (!present && !should_be_present)));
   }
   delete[] codeword;

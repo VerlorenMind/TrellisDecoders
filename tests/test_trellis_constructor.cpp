@@ -205,7 +205,7 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
 }
 
 TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
-  std::ifstream filename("../tests/test_matrix");
+  std::ifstream filename("../data/bch-31-16-bit-order");
   std::ofstream out;
   std::string name;
   unsigned int n, k;
@@ -232,4 +232,25 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
     delete[] matrix[i];
   }
   delete[] matrix;
+}
+
+TEST_CASE("Trellis: Can construct trellis from check matrix") {
+  std::ifstream filename("../data/bch-64-57-bit-order");
+  std::ofstream out;
+  Trellis trel;
+  std::string name;
+  unsigned int n, k;
+  std::getline(filename, name);
+  filename >> n >> k;
+  int **gen = readMatrix(filename, n, k);
+  int **check = readMatrix(filename, n, n-k);
+
+  trel.construct_from_check_matrix(n, k, check);
+
+  out.open("../tests/trellis.gv");
+  trel.print_trellis(out);
+  out.close();
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/trellis.png");
+
+  exhaustive_subtrellis_verification(n, k, gen, trel, ~0, check);
 }

@@ -38,7 +38,7 @@ class Trellis {
  public:
   Trellis();
   ~Trellis();
-  // void construct_from_check_matrix(unsigned int n, unsigned int k, int** h);
+  void construct_from_check_matrix(unsigned int n, unsigned int k, int** h);
   void construct_from_gen_matrix(unsigned int n, unsigned int k, int**g);
   TrellisLayer& operator[](unsigned int i);
   unsigned long long get_max_layer_size();

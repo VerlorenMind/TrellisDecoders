@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <stack>
+#include <unordered_set>
 
 TrellisNode &TrellisLayer::operator[](unsigned int i) {
   return layer[i];
@@ -385,5 +386,82 @@ void Trellis::reduce_to_weight(unsigned int w) {
   }
   delete[] min_weight_to;
   delete[] min_weight_from;
+}
+void Trellis::construct_from_check_matrix(unsigned int n, unsigned int k, int **check) {
+  trellis_size = n + 1;
+  trellis = new TrellisLayer[n + 1];
+  int **h = new int *[n-k];
+  for (unsigned int i = 0; i < n-k; ++i) {
+    h[i] = new int[n];
+    memcpy(h[i],check[i], n * sizeof(int));
+  }
+  std::vector<unsigned> row_start(n);
+  std::vector<unsigned> row_end(n);
+  minspanForm(n, n-k, h, row_start, row_end);
+  std::vector<bool> active_bits_mask(n-k);
+  unsigned int active_bits = 0;
+  std::vector<std::vector<bool>> prev_accumulated_synd(1), cur_accumulated_synd;
+  trellis[0].init(1, 0);
+  prev_accumulated_synd[0].resize(n-k);
+  std::fill(prev_accumulated_synd[0].begin(), prev_accumulated_synd[0].end(), 0);
+  for(unsigned int i=0; i<n; ++i) {
+    if(row_start[i] != ~0) {
+      active_bits_mask[row_start[i]] = true;
+      ++active_bits;
+    }
+    if(row_end[i] != ~0) {
+      --active_bits;
+      active_bits_mask[row_end[i]] = false;
+    }
+    trellis[i+1].init(uint64_t(1) << active_bits, i+1);
+    for(unsigned int j=0; j<trellis[i].size(); ++j) {
+      std::vector<bool> synd(n-k);
+      std::copy(prev_accumulated_synd[j].begin(), prev_accumulated_synd[j].end(), synd.begin());
+      for(unsigned int z=0; z<2; ++z) {
+        if(z) {
+          for(unsigned int l=0; l<n-k; ++l) {
+            synd[l] = (h[l][i] && !synd[l]) || (!h[l][i] && synd[l]);
+          }
+        }
+        bool valid = true;
+        for (unsigned int l = 0; l < n - k; ++l) {
+          if (synd[l] && !active_bits_mask[l]) {
+            valid = false;
+            break;
+          }
+        }
+        if (valid) {
+          bool found = false;
+          for (unsigned long long l = 0; l < cur_accumulated_synd.size(); ++l) {
+            std::vector<bool> &accum_synd = cur_accumulated_synd[l];
+            bool equal = true;
+            for(unsigned int b=0; b<n-k; ++b) {
+              if(accum_synd[b] != synd[b]) {
+                equal = false;
+                break;
+              }
+            }
+            if (equal) {
+              found = true;
+              trellis[i][j].next_node[z] = l;
+              trellis[i+1][l].prev_node[z] = j;
+              break;
+            }
+          }
+          if (!found) {
+            cur_accumulated_synd.push_back(synd);
+            trellis[i][j].next_node[z] = cur_accumulated_synd.size() - 1;
+            trellis[i+1][cur_accumulated_synd.size()-1].prev_node[z] = j;
+          }
+        }
+      }
+    }
+    prev_accumulated_synd.swap(cur_accumulated_synd);
+    cur_accumulated_synd.clear();
+  }
+  for(unsigned int i=0; i<n-k; ++i) {
+    delete[] h[i];
+  }
+  delete[] h;
 }
 

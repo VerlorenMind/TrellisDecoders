@@ -7,6 +7,6 @@
 #include "Trellis.h"
 #include "catch.hpp"
 
-void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g, Trellis &trellis, unsigned int w);
+void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g, Trellis &trellis, unsigned int w, int **h=nullptr);
 
 #endif //BEAST_INCLUDE_TESTUTILITY_H_

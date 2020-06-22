@@ -162,13 +162,13 @@ double KTKLDecoder::decode(const double *y, int *u) {
         ++op_cmp;
         // If there is still space in the buffer, make room for the new word
         if (best_words_count < buf_size) {
-          for (unsigned int j = best_words_count - 1; j >= i; --j) {
+          for (int j = best_words_count; j > i; --j) {
             memcpy(best_words[j], best_words[j - 1], n * sizeof(int));
             best_metrics[j] = best_metrics[j - 1];
           }
           ++best_words_count;
-          memcpy(best_words[i - 1], gen_words[g], n * sizeof(int));
-          best_metrics[i - 1] = gen_metrics[g];
+          memcpy(best_words[i], gen_words[g], n * sizeof(int));
+          best_metrics[i] = gen_metrics[g];
         }
         // If not, if there's inferior words in the buffer with higher metric, delete the one with the highest and insert the new one
         // Otherwise, don't insert anything
