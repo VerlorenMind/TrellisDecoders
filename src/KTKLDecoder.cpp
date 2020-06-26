@@ -6,7 +6,8 @@
 #include <unordered_set>
 
 KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsigned int order, unsigned int buf_size)
-    : buf_size(buf_size), order(order), first_candidate(n, k, g, 1), viterbi(n, k, g), SoftDecoder(n, k) {
+    : buf_size(buf_size), order(order), first_candidate(n, k, g, 1), viterbi(n, k, h), SoftDecoder(n, k) {
+  id = DecoderID::KTKL;
   if (buf_size > 3) buf_size = 3;
   if (buf_size < 1) buf_size = 1;
   gen_metrics = new double[buf_size + 1];

@@ -46,3 +46,39 @@ void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g,
   }
   delete[] codeword;
 }
+
+void test_beast_decoder(int tests, double stn, double delta, const std::string &filename) {
+  std::ifstream in(filename);
+  Simulation sim(in, 0, tests);
+  sim.add_beast_decoder(delta);
+  sim.setSTN(stn);
+  sim.test_run();
+}
+void test_bsd_decoder(int tests, double stn, std::string filename) {
+  std::ifstream in(filename);
+  Simulation sim(in, 0, tests);
+  sim.add_bsd_decoder();
+  sim.setSTN(stn);
+  sim.test_run();
+}
+void test_KTKL_decoder(int tests, double stn, int w, int buf_size, const std::string &filename) {
+  std::ifstream in(filename);
+  Simulation sim(in, 0, tests);
+  sim.add_ktkl_decoder(w, buf_size);
+  sim.setSTN(stn);
+  sim.test_run();
+}
+void test_osd_decoder(int tests, double stn, int w, std::string filename) {
+  std::ifstream in(filename);
+  Simulation sim(in, 0, tests);
+  sim.add_ordered_statistics_decoder(w);
+  sim.setSTN(stn);
+  sim.test_run();
+}
+void test_viterbi_decoder(int tests, double stn, const std::string &filename) {
+  std::ifstream in(filename);
+  Simulation sim(in, 0, tests);
+  sim.add_viterbi_decoder();
+  sim.setSTN(stn);
+  sim.test_run();
+}

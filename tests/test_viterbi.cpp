@@ -2,10 +2,11 @@
 #include <ViterbiDecoder.h>
 #include "Utility.h"
 #include "Simulation.h"
+#include "TestUtility.h"
 #include "catch.hpp"
 const double EPSILON = 0.0000001;
 
-TEST_CASE("VITERBI: Can decode zero word") {
+TEST_CASE("VITERBI: Can decode zero word", "[viterbi]") {
   std::ifstream filename("../tests/test_matrix");
   std::string name;
   std::getline(filename, name);
@@ -37,16 +38,17 @@ TEST_CASE("VITERBI: Can decode zero word") {
   delete[] g;
 }
 
-TEST_CASE("VITERBI: Can decode non-zero word") {
+TEST_CASE("VITERBI: Can decode non-zero word", "[viterbi]") {
   // notice - with this data it should fail
   std::ifstream filename("../tests/test_matrix");
   std::string name;
   std::getline(filename, name);
-  int **g;
+  int **g, **h;
   unsigned int n, k;
   filename >> n >> k;
   g = readMatrix(filename, n, k);
-  ViterbiDecoder dec(n, k, g);
+  h = readMatrix(filename, n, n-k);
+  ViterbiDecoder dec(n, k, h);
   double *x = new double[n];
   int *y = new int[n];
   int *u = new int[n];
@@ -65,6 +67,12 @@ TEST_CASE("VITERBI: Can decode non-zero word") {
   // True weight: 1.6053
 
   std::string codeword = "000000";
+
+  std::ofstream out;
+  out.open("../tests/trellis.gv");
+  dec.trellis.print_trellis(out);
+  out.close();
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/trellis.png");
 
   dec.decode(x, y);
 
@@ -85,92 +93,85 @@ TEST_CASE("VITERBI: Can decode non-zero word") {
   delete[] y;
 }
 
-void inline test_viterbi_decoder(int tests, double stn, const std::string &filename) {
-  std::ifstream in(filename);
-  Simulation sim(in, 0, tests);
-  sim.add_viterbi_decoder();
-  sim.setSTN(stn);
-  sim.test_run();
-}
 
-TEST_CASE("VITERBI: Can decode series of random words with minimal noise") {
+TEST_CASE("VITERBI: Can decode series of random words with minimal noise", "[viterbi]") {
   test_viterbi_decoder(1000, 100, "../tests/test_matrix");
 }
 
-TEST_CASE("VITERBI: Can decode series of random words with some noise") {
+TEST_CASE("VITERBI: Can decode series of random words with some noise", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../tests/test_matrix");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(7, 4, 3)") {
+TEST_CASE("VITERBI: Can decode BCH(7, 4, 3)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-7-4");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(7, 1, 5)") {
+TEST_CASE("VITERBI: Can decode BCH(7, 1, 5)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-7-1");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(8, 4, 4)") {
+TEST_CASE("VITERBI: Can decode EBCH(8, 4, 4)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-8-4");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(31, 16, 7)") {
+TEST_CASE("VITERBI: Can decode BCH(31, 16, 7)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-31-16-7");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(31, 21, 5)") {
+TEST_CASE("VITERBI: Can decode BCH(31, 21, 5)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-31-21-5");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(63, 7, 57)") {
+TEST_CASE("VITERBI: Can decode BCH(63, 7, 57)", "[viterbi]") {
   test_viterbi_decoder(1000, 5, "../data/bch-63-7-57");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(63, 16, 23)") {
+TEST_CASE("VITERBI: Can decode BCH(63, 16, 23)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-63-16-23");
 }
 
-/*TEST_CASE("VITERBI: Can decode BCH(63, 30, 13)")
+/*TEST_CASE("VITERBI: Can decode BCH(63, 30, 13)", "[viterbi]")
 {
     test_viterbi_decoder(1000, 1, "../data/bch-63-30-13");
 }
 
-TEST_CASE("VITERBI: Can decode BCH(63, 39, 9)")
+TEST_CASE("VITERBI: Can decode BCH(63, 39, 9)", "[viterbi]")
 {
     test_viterbi_decoder(1000, 1, "../data/bch-63-39-9");
 }*/
 
-TEST_CASE("VITERBI: Can decode RM(16, 5)") {
+TEST_CASE("VITERBI: Can decode RM(16, 5)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/reed-muller-16-1");
 }
 
-TEST_CASE("VITERBI: Can decode RM(32, 6)") {
+TEST_CASE("VITERBI: Can decode RM(32, 6)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/reed-muller-32-1");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(32, 16)") {
+TEST_CASE("VITERBI: Can decode EBCH(32, 16)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-32-16");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(32, 21)") {
+TEST_CASE("VITERBI: Can decode EBCH(32, 21)", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-32-21");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(32, 16) in SBO") {
+TEST_CASE("VITERBI: Can decode EBCH(32, 16) in SBO", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-32-16-bit-order");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(32, 21) in SBO") {
+TEST_CASE("VITERBI: Can decode EBCH(32, 21) in SBO", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-32-21-bit-order");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(64, 57) in SBO") {
+TEST_CASE("VITERBI: Can decode EBCH(64, 57) in SBO", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-64-57-bit-order");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(64, 51) in SBO") {
+TEST_CASE("VITERBI: Can decode EBCH(64, 51) in SBO", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-64-51-bit-order");
 }
 
-TEST_CASE("VITERBI: Can decode EBCH(64, 45) in SBO") {
+TEST_CASE("VITERBI: Can decode EBCH(64, 45) in SBO", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-64-45-bit-order");
 }

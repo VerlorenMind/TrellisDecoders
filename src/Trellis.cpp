@@ -456,9 +456,13 @@ void Trellis::construct_from_check_matrix(unsigned int n, unsigned int k, int **
         }
       }
     }
+    if(active_bits > max_layer_size) {
+      max_layer_size = active_bits;
+    }
     prev_accumulated_synd.swap(cur_accumulated_synd);
     cur_accumulated_synd.clear();
   }
+  max_layer_size = uint64_t(1) << max_layer_size;
   for(unsigned int i=0; i<n-k; ++i) {
     delete[] h[i];
   }

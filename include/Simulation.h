@@ -7,6 +7,12 @@
 #include "DecoderID.h"
 #include "SoftDecoder.h"
 
+#ifdef CATCH_TESTING
+struct TestCase {
+  int *ux, *y;
+  double *x;
+};
+#endif
 class Simulation {
  private:
   unsigned int n, k, test;
@@ -27,7 +33,11 @@ class Simulation {
   int calculate_syndrome(const int *vec);
   bool check_decoded_word();
  public:
+#ifdef CATCH_TESTING
+ std::vector<TestCase> failed_cases;
+#endif
   std::vector<long> errors_by_decoder;
+  std::vector<long> iters_by_decoder;
   std::vector<long> cmp_ops_by_decoder;
   std::vector<long> add_ops_by_decoder;
   explicit Simulation(std::ifstream &input_file, unsigned int max_errors = 0,
@@ -46,10 +56,12 @@ class Simulation {
   void add_ordered_statistics_decoder(int order);
   void setSTN(double stn);
 #ifdef CATCH_TESTING
-  void test_run();
+  void test_run(bool silent=false);
+  void run_failed_cases(bool silent=false);
 #endif
   void log();
   void log_header();
+  void clear_decoders();
   std::vector<DecoderID> get_decoders();
   unsigned int get_max_errors();
   unsigned int get_max_iterations();

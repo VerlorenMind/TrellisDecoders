@@ -3,6 +3,7 @@
 #include <BSDDecoder.h>
 #include <Simulation.h>
 #include <BeastDecoder.h>
+#include "TestUtility.h"
 #include "catch.hpp"
 const double EPSILON = 0.0000001;
 
@@ -88,13 +89,6 @@ TEST_CASE("BSD: Can decode non-zero word") {
   delete[] y;
 }
 
-void inline test_bsd_decoder(int tests, double stn, std::string filename) {
-  std::ifstream in(filename);
-  Simulation sim(in, 0, tests);
-  sim.add_bsd_decoder();
-  sim.setSTN(stn);
-  sim.test_run();
-}
 
 TEST_CASE("BSD: Can decode series of random words with minimal noise") {
   test_bsd_decoder(1000, 100, "../tests/test_matrix");

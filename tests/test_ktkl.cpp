@@ -2,10 +2,11 @@
 #include <KTKLDecoder.h>
 #include "Utility.h"
 #include "Simulation.h"
+#include "TestUtility.h"
 #include "catch.hpp"
 const double EPSILON = 0.0000001;
 
-TEST_CASE("KTKL: Can decode zero word") {
+TEST_CASE("KTKL: Can decode zero word", "[ktkl]") {
   std::ifstream filename("../tests/test_matrix");
   std::string name;
   std::getline(filename, name);
@@ -42,7 +43,7 @@ TEST_CASE("KTKL: Can decode zero word") {
   delete[] h;
 }
 
-TEST_CASE("KTKL: Can decode non-zero word") {
+TEST_CASE("KTKL: Can decode non-zero word", "[ktkl]") {
   // notice - with this data it should fail
   std::ifstream filename("../tests/test_matrix");
   std::string name;
@@ -95,92 +96,101 @@ TEST_CASE("KTKL: Can decode non-zero word") {
   delete[] y;
 }
 
-void inline test_KTKL_decoder(int tests, double stn, int w, int buf_size, const std::string &filename) {
-  std::ifstream in(filename);
-  Simulation sim(in, 0, tests);
-  sim.add_ktkl_decoder(w, buf_size);
-  sim.setSTN(stn);
-  sim.test_run();
-}
 
-TEST_CASE("KTKL: Can decode series of random words with minimal noise") {
+TEST_CASE("KTKL: Can decode series of random words with minimal noise", "[ktkl]") {
   test_KTKL_decoder(1000, 100, 1, 3, "../tests/test_matrix");
 }
 
-TEST_CASE("KTKL: Can decode series of random words with some noise") {
+TEST_CASE("KTKL: Can decode series of random words with some noise", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../tests/test_matrix");
 }
 
-TEST_CASE("KTKL: Can decode BCH(7, 4, 3)") {
+TEST_CASE("KTKL: Can decode BCH(7, 4, 3)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-7-4");
 }
 
-TEST_CASE("KTKL: Can decode BCH(7, 1, 5)") {
+TEST_CASE("KTKL: Can decode BCH(7, 1, 5)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-7-1");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(8, 4, 4)") {
+TEST_CASE("KTKL: Can decode EBCH(8, 4, 4)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-8-4");
 }
 
-TEST_CASE("KTKL: Can decode BCH(31, 16, 7)") {
+TEST_CASE("KTKL: Can decode BCH(31, 16, 7)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-31-16-7");
 }
 
-TEST_CASE("KTKL: Can decode BCH(31, 21, 5)") {
+TEST_CASE("KTKL: Can decode BCH(31, 21, 5)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-31-21-5");
 }
 
-TEST_CASE("KTKL: Can decode BCH(63, 7, 57)") {
+TEST_CASE("KTKL: Can decode BCH(63, 7, 57)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-63-7-57");
 }
 
-TEST_CASE("KTKL: Can decode BCH(63, 16, 23)") {
+TEST_CASE("KTKL: Can decode BCH(63, 16, 23)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-63-16-23");
 }
 
-/*TEST_CASE("KTKL: Can decode BCH(63, 30, 13)")
+/*TEST_CASE("KTKL: Can decode BCH(63, 30, 13)", "[ktkl]")
 {
     test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-63-30-13");
 }
 
-TEST_CASE("KTKL: Can decode BCH(63, 39, 9)")
+TEST_CASE("KTKL: Can decode BCH(63, 39, 9)", "[ktkl]")
 {
     test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-63-39-9");
 }*/
 
-TEST_CASE("KTKL: Can decode RM(16, 5)") {
+TEST_CASE("KTKL: Can decode RM(16, 5)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/reed-muller-16-1");
 }
 
-TEST_CASE("KTKL: Can decode RM(32, 6)") {
+TEST_CASE("KTKL: Can decode RM(32, 6)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/reed-muller-32-1");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(32, 16)") {
+TEST_CASE("KTKL: Can decode EBCH(32, 16)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-32-16");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(32, 21)") {
+TEST_CASE("KTKL: Can decode EBCH(32, 21)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-32-21");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(32, 16) in SBO") {
+TEST_CASE("KTKL: Can decode EBCH(32, 16) in SBO", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-32-16-bit-order");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(32, 21) in SBO") {
-  test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-32-21-bit-order");
+TEST_CASE("KTKL: Can decode EBCH(32, 21) in SBO", "[ktkl]") {
+  test_KTKL_decoder(1000, 3, 1, 3, "../data/bch-32-21-bit-order");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(64, 57) in SBO") {
+TEST_CASE("KTKL: Can decode EBCH(64, 57) in SBO", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-64-57-bit-order");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(64, 51) in SBO") {
+TEST_CASE("KTKL: Can decode EBCH(64, 51) in SBO", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-64-51-bit-order");
 }
 
-TEST_CASE("KTKL: Can decode EBCH(64, 45) in SBO") {
+TEST_CASE("KTKL: Can decode EBCH(64, 45) in SBO", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-64-45-bit-order");
 }
+TEST_CASE("KTKL: Can decode EBCH(64, 24) in SBO", "[ktkl]") {
+  test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-64-24-bit-order");
+}
+TEST_CASE("KTKL: Can outperform OSD", "[ktkl]") {
+  std::ifstream in("../data/bch-64-24-bit-order");
+  Simulation sim(in, 0, 1000);
+  sim.add_ktkl_decoder(1,3);
+  sim.setSTN(2);
+  sim.test_run(true);
+  sim.clear_decoders();
+  sim.add_ordered_statistics_decoder(1);
+  sim.run_failed_cases(true);
+
+  REQUIRE(sim.failed_cases.empty());
+}
+

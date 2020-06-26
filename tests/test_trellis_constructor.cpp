@@ -235,7 +235,8 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
 }
 
 TEST_CASE("Trellis: Can construct trellis from check matrix") {
-  std::ifstream filename("../data/bch-64-57-bit-order");
+  std::ifstream filename("../tests/test_matrix");
+  REQUIRE(filename.is_open());
   std::ofstream out;
   Trellis trel;
   std::string name;
@@ -250,7 +251,7 @@ TEST_CASE("Trellis: Can construct trellis from check matrix") {
   out.open("../tests/trellis.gv");
   trel.print_trellis(out);
   out.close();
-  system("dot ../tests/trellis.gv -Tpng -o ../tests/trellis.png");
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/trellis1.png");
 
   exhaustive_subtrellis_verification(n, k, gen, trel, ~0, check);
 }

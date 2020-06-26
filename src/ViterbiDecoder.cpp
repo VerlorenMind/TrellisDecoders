@@ -3,8 +3,9 @@
 
 #define HUGE_VAL (__builtin_huge_val ())
 
-ViterbiDecoder::ViterbiDecoder(unsigned int n, unsigned int k, int **g) : SoftDecoder(n, k) {
-  trellis.construct_from_gen_matrix(n, k, g);
+ViterbiDecoder::ViterbiDecoder(unsigned int n, unsigned int k, int **h) : SoftDecoder(n, k) {
+  id = DecoderID::VITERBI;
+  trellis.construct_from_check_matrix(n, k, h);
   prev_layer = new double[trellis.get_max_layer_size()];
   cur_layer = new double[trellis.get_max_layer_size()];
   prev_layer_path = new uint64_t[trellis.get_max_layer_size()];

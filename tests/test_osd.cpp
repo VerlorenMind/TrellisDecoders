@@ -2,6 +2,7 @@
 #include <Simulation.h>
 #include "catch.hpp"
 #include "Utility.h"
+#include "TestUtility.h"
 #include "OrderedStatisticsDecoder.h"
 
 TEST_CASE("OSD: Can decode zero word") {
@@ -85,14 +86,6 @@ TEST_CASE("OSD: Can decode non-zero word") {
   delete[] y;
 }
 
-void inline test_osd_decoder(int tests, double stn, int w, std::string filename) {
-  std::ifstream in(filename);
-  Simulation sim(in, 0, tests);
-  sim.add_ordered_statistics_decoder(w);
-  ((OrderedStatisticsDecoder *) sim.get_decoder(DecoderID::ORDERED_STATISTICS))->set_max_weight(w);
-  sim.setSTN(stn);
-  sim.test_run();
-}
 
 TEST_CASE("OSD: Can decode series of random words with minimal noise") {
   test_osd_decoder(1000, 100, 2, "../tests/test_matrix");
@@ -119,7 +112,7 @@ TEST_CASE("OSD: Can decode BCH(31, 16, 7)") {
 }
 
 TEST_CASE("OSD: Can decode BCH(31, 21, 5)") {
-  test_osd_decoder(1000, 1, 2, "../data/bch-31-21-5");
+  test_osd_decoder(1000, 3, 1, "../data/bch-31-21-5");
 }
 
 TEST_CASE("OSD: Can decode BCH(63, 7, 57)") {

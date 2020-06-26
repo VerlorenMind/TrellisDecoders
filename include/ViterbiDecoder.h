@@ -10,7 +10,7 @@ class ViterbiDecoder : public SoftDecoder {
   double decode(int *u);
  public:
   Trellis trellis;
-  ViterbiDecoder(unsigned int n, unsigned int k, int **g);
+  ViterbiDecoder(unsigned int n, unsigned int k, int **h);
   ~ViterbiDecoder();
   double decode(const double *x, int *u) override;
   double decode_around(const double *x, int *u, const int *c);

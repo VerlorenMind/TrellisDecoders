@@ -3,6 +3,7 @@
 #include "Utility.h"
 #include "Simulation.h"
 #include "catch.hpp"
+#include "TestUtility.h"
 const double EPSILON = 0.0000001;
 
 TEST_CASE("BEAST: Can decode zero word") {
@@ -87,13 +88,6 @@ TEST_CASE("BEAST: Can decode non-zero word") {
   delete[] y;
 }
 
-void inline test_beast_decoder(int tests, double stn, double delta, const std::string &filename) {
-  std::ifstream in(filename);
-  Simulation sim(in, 0, tests);
-  sim.add_beast_decoder(delta);
-  sim.setSTN(stn);
-  sim.test_run();
-}
 
 TEST_CASE("BEAST: Can decode series of random words with minimal noise") {
   test_beast_decoder(1000, 100, 0.5, "../tests/test_matrix");
