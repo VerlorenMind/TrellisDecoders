@@ -193,4 +193,7 @@ TEST_CASE("KTKL: Can outperform OSD", "[ktkl]") {
 
   REQUIRE(sim.failed_cases.empty());
 }
+TEST_CASE("KTKL: Can decode EBCH(128, 36)", "[ktkl]") {
+  test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-128-36-bit-order");
+}
 

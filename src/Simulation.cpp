@@ -10,6 +10,7 @@
 #include <ViterbiDecoder.h>
 #include <KTKLDecoder.h>
 #include "Simulation.h"
+#include "Exceptions.h"
 
 const double EPSILON = 0.0000001;
 
@@ -53,12 +54,12 @@ int Simulation::calculate_syndrome(const int *vec) {
   return syndsum;
 }
 
-bool Simulation::check_decoded_word() {
+bool Simulation::check_decoded_word(int dec_num) {
   bool flag = true;
   for (unsigned int i = 0; i < n; ++i) {
     if (y[i] != ux[i]) {
       flag = false;
-      break;
+      ++bit_errors_by_decoder[dec_num];
     }
   }
   return flag;
@@ -66,11 +67,17 @@ bool Simulation::check_decoded_word() {
 
 Simulation::Simulation(std::ifstream &input_file, unsigned int max_errors,
                        unsigned int max_iterations, unsigned int seed) {
+  if(!input_file.is_open()) {
+    throw InvalidFileException();
+  }
   std::getline(input_file, code_name);
-  // input_file >> code_name;
   input_file >> n >> k;
+  if(k > n) {
+    throw InvalidFileException();
+  }
   g = readMatrix(input_file, n, k);
   h = readMatrix(input_file, n, n - k);
+  input_file.close();
   test = 0;
   this->max_iterations = max_iterations;
   this->max_errors = max_errors;
@@ -90,6 +97,9 @@ Simulation::Simulation(std::ifstream &input_file, unsigned int max_errors,
 Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : Simulation(input_file) {
   setSTN(1);
   std::string line;
+  if(!run_config.is_open()) {
+    throw InvalidFileException();
+  }
   std::getline(run_config, line);
   std::stringstream linestr(line);
   linestr >> max_errors >> max_iterations;
@@ -128,6 +138,7 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
       }
       case DecoderID::ERROR: {
         std::cerr << "Invalid run config: " + decoder_name + " is not a name";
+        throw InvalidFileException();
         break;
       }
       case DecoderID::ORDERED_STATISTICS: {
@@ -145,6 +156,7 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
     }
   }
   errors_by_decoder.resize(decoders.size());
+  bit_errors_by_decoder.resize(decoders.size());
   cmp_ops_by_decoder.resize(decoders.size());
   add_ops_by_decoder.resize(decoders.size());
 }
@@ -161,6 +173,7 @@ Simulation::Simulation(std::ifstream &input_file, double stn, SoftDecoder *decod
   decoders.resize(1);
   decoders[0] = decoder;
   errors_by_decoder.resize(decoders.size());
+  bit_errors_by_decoder.resize(decoders.size());
   cmp_ops_by_decoder.resize(decoders.size());
   add_ops_by_decoder.resize(decoders.size());
 }
@@ -191,6 +204,8 @@ Simulation::~Simulation() {
 #endif
 }
 void Simulation::run() {
+  bit_errors_by_decoder.resize(decoders.size());
+  std::fill(bit_errors_by_decoder.begin(), bit_errors_by_decoder.end(), 0);
   errors_by_decoder.resize(decoders.size());
   std::fill(errors_by_decoder.begin(), errors_by_decoder.end(), 0);
   cmp_ops_by_decoder.resize(decoders.size());
@@ -214,7 +229,7 @@ void Simulation::run() {
       decoders[i]->decode(x, y);
       cmp_ops_by_decoder[i] += decoders[i]->op_cmp;
       add_ops_by_decoder[i] += decoders[i]->op_add;
-      if (!check_decoded_word()) {
+      if (!check_decoded_word(i)) {
         ++errors_by_decoder[i];
         if (errors_by_decoder[i] >= max_errors) {
           decoder_stopped[i] = true;
@@ -290,7 +305,7 @@ void Simulation::test_run(bool silent) {
 
     stop = std::chrono::high_resolution_clock::now();
     overall += std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-    flag = check_decoded_word();
+    flag = check_decoded_word(0);
     int syndsum = calculate_syndrome(y);
     euclCalc = 0;
     for (unsigned int i = 0; i < n; ++i) {
@@ -333,6 +348,7 @@ void Simulation::log_header() {
   for (auto dec : decoders) {
     std::string name = idToString(dec->get_id());
     std::cout << name << "-FER,";
+    std::cout << name << "-BER,";
     std::cout << name << "-CMP,";
     std::cout << name << "-ADD,";
   }
@@ -343,7 +359,9 @@ void Simulation::log() {
   std::cout << stn << ",";
   std::cout << dev << ",";
   for (unsigned long i = 0; i < decoders.size(); ++i) {
-    std::cout << 1.0 * errors_by_decoder[i] / iters_by_decoder[i] << "," << 1.0 * cmp_ops_by_decoder[i] / iters_by_decoder[i] << ","
+    std::cout << 1.0 * errors_by_decoder[i] / iters_by_decoder[i] << ","
+              << 1.0 * bit_errors_by_decoder[i] / (n*iters_by_decoder[i]) << ","
+              << 1.0 * cmp_ops_by_decoder[i] / iters_by_decoder[i] << ","
               << 1.0 * add_ops_by_decoder[i] / iters_by_decoder[i] << ",";
   }
   std::cout << std::endl;
@@ -417,7 +435,7 @@ void Simulation::run_failed_cases(bool silent) {
     }
     calcWeight = decoders[0]->decode(failed_case->x, y);
 
-    flag = check_decoded_word();
+    flag = check_decoded_word(0);
     int syndsum = calculate_syndrome(y);
     euclCalc = 0;
     for (unsigned int i = 0; i < n; ++i) {

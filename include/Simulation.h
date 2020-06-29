@@ -31,7 +31,7 @@ class Simulation {
   void encode();
   void apply_noise();
   int calculate_syndrome(const int *vec);
-  bool check_decoded_word();
+  bool check_decoded_word(int dec_num);
  public:
 #ifdef CATCH_TESTING
  std::vector<TestCase> failed_cases;
@@ -40,6 +40,7 @@ class Simulation {
   std::vector<long> iters_by_decoder;
   std::vector<long> cmp_ops_by_decoder;
   std::vector<long> add_ops_by_decoder;
+  std::vector<long> bit_errors_by_decoder;
   explicit Simulation(std::ifstream &input_file, unsigned int max_errors = 0,
                       unsigned int max_iterations = 0, unsigned int seed = 123);
   Simulation(std::ifstream &input_file, std::ifstream &run_config);

@@ -1,14 +1,25 @@
 #include <iostream>
+#include <Exceptions.h>
 #include "Utility.h"
 
 int **readMatrix(std::ifstream &input, unsigned int n, unsigned int k) {
+  // Check n and k before allocating ungodly amounts of memory due to corrupted values
+  unsigned long long trying_to_alloc = k*n*sizeof(int);
+  if(trying_to_alloc > (uint32_t(1) << 30)) {
+    throw InvalidFileException();
+  }
   int **matrix = new int *[k];
   for (unsigned int i = 0; i < k; ++i) {
     matrix[i] = new int[n];
   }
   for (unsigned int i = 0; i < k; ++i) {
     for (unsigned int j = 0; j < n; ++j) {
-      input >> matrix[i][j];
+      int temp;
+      input >> temp;
+      if(!input.good() || (temp != 0 && temp != 1)) {
+        throw InvalidFileException();
+      }
+      matrix[i][j] = temp;
     }
   }
   return matrix;
