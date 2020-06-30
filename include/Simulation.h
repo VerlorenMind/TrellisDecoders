@@ -32,6 +32,7 @@ class Simulation {
   void apply_noise();
   int calculate_syndrome(const int *vec);
   bool check_decoded_word(int dec_num);
+  bool check_decoded_word();
  public:
 #ifdef CATCH_TESTING
  std::vector<TestCase> failed_cases;

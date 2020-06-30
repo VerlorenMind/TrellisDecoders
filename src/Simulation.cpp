@@ -54,6 +54,16 @@ int Simulation::calculate_syndrome(const int *vec) {
   return syndsum;
 }
 
+bool Simulation::check_decoded_word() {
+  bool flag = true;
+  for (unsigned int i = 0; i < n; ++i) {
+    if (y[i] != ux[i]) {
+      flag = false;
+      break;
+    }
+  }
+  return flag;
+}
 bool Simulation::check_decoded_word(int dec_num) {
   bool flag = true;
   for (unsigned int i = 0; i < n; ++i) {
@@ -305,7 +315,7 @@ void Simulation::test_run(bool silent) {
 
     stop = std::chrono::high_resolution_clock::now();
     overall += std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-    flag = check_decoded_word(0);
+    flag = check_decoded_word();
     int syndsum = calculate_syndrome(y);
     euclCalc = 0;
     for (unsigned int i = 0; i < n; ++i) {
@@ -435,7 +445,7 @@ void Simulation::run_failed_cases(bool silent) {
     }
     calcWeight = decoders[0]->decode(failed_case->x, y);
 
-    flag = check_decoded_word(0);
+    flag = check_decoded_word();
     int syndsum = calculate_syndrome(y);
     euclCalc = 0;
     for (unsigned int i = 0; i < n; ++i) {

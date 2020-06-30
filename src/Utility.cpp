@@ -15,8 +15,11 @@ int **readMatrix(std::ifstream &input, unsigned int n, unsigned int k) {
   for (unsigned int i = 0; i < k; ++i) {
     for (unsigned int j = 0; j < n; ++j) {
       int temp;
+      if(!input.good()) {
+        throw InvalidFileException();
+      }
       input >> temp;
-      if(!input.good() || (temp != 0 && temp != 1)) {
+      if(temp != 0 && temp != 1) {
         throw InvalidFileException();
       }
       matrix[i][j] = temp;

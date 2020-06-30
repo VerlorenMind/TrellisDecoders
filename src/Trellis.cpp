@@ -67,6 +67,7 @@ Trellis::Trellis() {
   max_layer_size = 0;
 }
 
+/*
 void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **gen) {
   trellis_size = n + 1;
   trellis = new TrellisLayer[n + 1];
@@ -145,9 +146,11 @@ void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **ge
     };
     std::swap(cw_0, cw_1);
     num_of_AB = next_num_of_AB;
-    /*if (j < n) {
+    */
+/*if (j < n) {
       num_of_active_bits[j + 1] = num_of_AB;
-    }*/
+    }*//*
+
     if (num_of_AB > max_layer_size)
       max_layer_size = num_of_AB;
   };
@@ -162,6 +165,7 @@ void Trellis::construct_from_gen_matrix(unsigned int n, unsigned int k, int **ge
   delete[] g;
   // delete[] num_of_active_bits;
 }
+*/
 unsigned long long Trellis::get_max_layer_size() {
   return max_layer_size;
 }

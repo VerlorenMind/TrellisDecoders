@@ -7,9 +7,8 @@ class OrderedStatisticsDecoder : public SoftDecoder {
  private:
   int **g;
   int **g_buf;
-  int *c_temp;
+  int *c_temp, *c_hard;
   int *c_best;
-  int *u_temp;
   int w;
  public:
   OrderedStatisticsDecoder(unsigned int n, unsigned int k, int **gen_matrix, int w);

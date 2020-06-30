@@ -15,9 +15,9 @@ OrderedStatisticsDecoder::OrderedStatisticsDecoder(unsigned int n, unsigned int 
     g_buf[i] = new int[n];
     memcpy(g[i], gen_matrix[i], n * sizeof(int));
   }
-  u_temp = new int[k];
   c_temp = new int[n];
   c_best = new int[n];
+  c_hard = new int[n];
 }
 
 OrderedStatisticsDecoder::~OrderedStatisticsDecoder() {
@@ -27,9 +27,9 @@ OrderedStatisticsDecoder::~OrderedStatisticsDecoder() {
   }
   delete[] g;
   delete[] g_buf;
-  delete[] u_temp;
   delete[] c_temp;
   delete[] c_best;
+  delete[] c_hard;
 }
 
 double OrderedStatisticsDecoder::decode(const double *x, int *u) {
@@ -71,19 +71,19 @@ double OrderedStatisticsDecoder::decode(const double *x, int *u) {
     }
   }
   double min_metric = -1;
+  memset(c_hard, 0, n*sizeof(int));
+  for(unsigned int i=0; i<k; ++i) {
+    for(unsigned int j=0; j<n; ++j) {
+      c_hard[j] ^= alpha[ind[i]] & g_buf[i][j];
+    }
+  }
   for (unsigned i = 0; i <= w; ++i) {
     std::vector<std::vector<int>> combs = combinations(k, i);
     for (const auto &comb : combs) {
-      for (unsigned int j = 0; j < k; ++j) {
-        u_temp[j] = alpha[ind[j]];
-      }
+      memcpy(c_temp, c_hard, n * sizeof(int));
       for (auto pos : comb) {
-        u_temp[pos] ^= 1;
-      }
-      memset(c_temp, 0, n * sizeof(int));
-      for (unsigned int j = 0; j < n; ++j) {
-        for (unsigned int l = 0; l < k; ++l) {
-          c_temp[j] ^= u_temp[l] & g_buf[l][j];
+        for(unsigned int j=0; j<n; ++j) {
+          c_temp[j] ^= g_buf[pos][j];
         }
       }
       double metr = 0;

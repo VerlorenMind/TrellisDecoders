@@ -213,8 +213,9 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
   std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
+  int **check = readMatrix(filename, n, n-k);
   Trellis trel;
-  trel.construct_from_gen_matrix(n, k, matrix);
+  trel.construct_from_check_matrix(n, k, check);
   out.open("../tests/trellis.gv");
   trel.print_trellis(out);
   out.close();
@@ -232,6 +233,10 @@ TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
     delete[] matrix[i];
   }
   delete[] matrix;
+  for (unsigned int i = 0; i < n-k; ++i) {
+    delete[] check[i];
+  }
+  delete[] check;
 }
 
 TEST_CASE("Trellis: Can construct trellis from check matrix") {
@@ -254,4 +259,13 @@ TEST_CASE("Trellis: Can construct trellis from check matrix") {
   system("dot ../tests/trellis.gv -Tpng -o ../tests/trellis1.png");
 
   exhaustive_subtrellis_verification(n, k, gen, trel, ~0, check);
+
+  for (unsigned int i = 0; i < k; ++i) {
+    delete[] gen[i];
+  }
+  delete[] gen;
+  for (unsigned int i = 0; i < n-k; ++i) {
+    delete[] check[i];
+  }
+  delete[] check;
 }
