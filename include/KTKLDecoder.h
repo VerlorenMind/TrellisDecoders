@@ -12,7 +12,7 @@ class KTKLDecoder : public SoftDecoder {
   ViterbiDecoder viterbi;
   OrderedStatisticsDecoder first_candidate;
   unsigned int order, buf_size;
-  int **check, *c_best, *l_weights, **gen_words, **best_words, **l_words;
+  int **check, *c_best, *l_weights, **best_words, **l_words, *c_last, *c_prev;
   double *gen_metrics, *best_metrics;
   std::vector<int> weight_profile;
   std::vector<int> sorted_beta_ind;

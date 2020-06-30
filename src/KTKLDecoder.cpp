@@ -10,18 +10,17 @@ KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsig
   id = DecoderID::KTKL;
   if (buf_size > 3) buf_size = 3;
   if (buf_size < 1) buf_size = 1;
-  gen_metrics = new double[buf_size + 1];
-  gen_words = new int *[buf_size + 1];
+  gen_metrics = new double[3];
   best_words = new int *[buf_size];
   best_metrics = new double[buf_size];
   l_weights = new int[buf_size];
   l_words = new int*[buf_size];
   c_best = new int[n];
+  c_last = new int[n];
+  c_prev = new int[n];
   for (unsigned int i = 0; i < buf_size; ++i) {
-    gen_words[i] = new int[n];
     best_words[i] = new int[n];
   }
-  gen_words[buf_size] = new int[n];
   check = new int *[n - k];
   for (unsigned int i = 0; i < n - k; ++i) {
     check[i] = new int[n];
@@ -29,14 +28,24 @@ KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsig
   }
   weight_profile.resize(0);
   int word_weight = 0;
+  int *codeword = new int[n];
   for (uint64_t infoword = 0; infoword < (uint64_t(1) << k); ++infoword) {
-    word_weight = 0;
-    for (unsigned int j = 0; j < n; ++j) {
-      int temp = 0;
+    if(infoword == 0) {
+      memset(codeword, 0, n*sizeof(int));
+    }
+    else {
+      uint64_t bit_diff = infoword ^(infoword - 1);
       for (unsigned int l = 0; l < k; ++l) {
-        temp ^= g[l][j] & ((infoword & (uint64_t(1) << l)) ? 1 : 0);
+        if(bit_diff & (uint64_t(1) << l)) {
+          for (unsigned int j = 0; j < n; ++j) {
+            codeword[j] ^= g[l][j];
+          }
+        }
       }
-      word_weight += temp ? 1 : 0;
+    }
+    word_weight = 0;
+    for(unsigned int i=0; i<n; ++i) {
+      word_weight += codeword[i];
     }
     auto iter = weight_profile.begin();
     while (iter != weight_profile.end() && *iter < word_weight) {
@@ -49,18 +58,18 @@ KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsig
       weight_profile.insert(iter, word_weight);
     }
   }
+  delete[] codeword;
   viterbi.trellis.reduce_to_weight(weight_profile[order]);
 }
 KTKLDecoder::~KTKLDecoder() {
   delete[] gen_metrics;
   for (unsigned int i = 0; i < buf_size; ++i) {
-    delete[] gen_words[i];
     delete[] best_words[i];
   }
   delete[] best_words;
   delete[] best_metrics;
-  delete[] gen_words[buf_size];
-  delete[] gen_words;
+  delete[] c_last;
+  delete[] c_prev;
   for (unsigned int i = 0; i < n - k; ++i) {
     delete[] check[i];
   }
@@ -106,9 +115,10 @@ double KTKLDecoder::decode(const double *y, int *u) {
             });
   // Generating initial codeword
   int g = 0;
+  int last_metric = 0;
   double best_metric;
-  best_metric = gen_metrics[g] = first_candidate.decode(y, gen_words[g]);
-  memcpy(c_best, gen_words[g], n * sizeof(int));
+  best_metric = gen_metrics[last_metric] = first_candidate.decode(y, c_last);
+  memcpy(c_best, c_last, n * sizeof(int));
   op_cmp += first_candidate.op_cmp;
   op_add += first_candidate.op_add;
   int best_words_count = 0;
@@ -121,12 +131,12 @@ double KTKLDecoder::decode(const double *y, int *u) {
         l_words[i] = best_words[i];
         l_weights[i] = weight_profile[order + 1];
       }
-      l_words[best_words_count - 1] = gen_words[g];
+      l_words[best_words_count - 1] = c_last;
       l_weights[best_words_count - 1] = weight_profile[1];
       l1 = l(l_words, best_words_count);
     }
     else {
-      l_words[0] = gen_words[g];
+      l_words[0] = c_last;
       l_weights[0] = weight_profile[1];
       l1 = l(l_words, best_words_count+1);
     }
@@ -135,7 +145,7 @@ double KTKLDecoder::decode(const double *y, int *u) {
       l_weights[i] = weight_profile[order+1];
     }
     double l2;
-    if(g == buf_size) {
+    if(g >= buf_size) {
       l2 = l(l_words, best_words_count);
     }
     else {
@@ -151,13 +161,13 @@ double KTKLDecoder::decode(const double *y, int *u) {
     if (!replaced_best) {
       // If buffer is empty, just put the word there
       if (best_words_count == 0) {
-        memcpy(best_words[0], gen_words[g], n * sizeof(int));
-        best_metrics[0] = gen_metrics[g];
+        memcpy(best_words[0], c_last, n * sizeof(int));
+        best_metrics[0] = gen_metrics[last_metric];
         ++best_words_count;
       } else {
         // Finding the place to insert the word
         unsigned int i = 0;
-        for (i = 0; i < best_words_count && best_metrics[i] > gen_metrics[g]; ++i) {
+        for (i = 0; i < best_words_count && best_metrics[i] > gen_metrics[last_metric]; ++i) {
           ++op_cmp;
         }
         ++op_cmp;
@@ -168,8 +178,8 @@ double KTKLDecoder::decode(const double *y, int *u) {
             best_metrics[j] = best_metrics[j - 1];
           }
           ++best_words_count;
-          memcpy(best_words[i], gen_words[g], n * sizeof(int));
-          best_metrics[i] = gen_metrics[g];
+          memcpy(best_words[i], c_last, n * sizeof(int));
+          best_metrics[i] = gen_metrics[last_metric];
         }
         // If not, if there's inferior words in the buffer with higher metric, delete the one with the highest and insert the new one
         // Otherwise, don't insert anything
@@ -178,34 +188,34 @@ double KTKLDecoder::decode(const double *y, int *u) {
             memcpy(best_words[j], best_words[j + 1], n * sizeof(int));
             best_metrics[j] = best_metrics[j + 1];
           }
-          memcpy(best_words[i - 1], gen_words[g], n * sizeof(int));
-          best_metrics[i - 1] = gen_metrics[g];
+          memcpy(best_words[i - 1], c_last, n * sizeof(int));
+          best_metrics[i - 1] = gen_metrics[last_metric];
         }
       }
     }
     // If not optimal, search trellis
-    // If buffer is full, shifting saved words to make space for a new one
-    if (g == buf_size) {
-      for (int i = buf_size; i > 0; --i) {
-        memcpy(gen_words[i - 1], gen_words[i], n * sizeof(int));
-      }
-    } else {
-      ++g;
-    }
     // Searching subtrellis
-    gen_metrics[g] = viterbi.decode_around(y, gen_words[g], gen_words[g-1]);
+    if(last_metric < 2) {
+      ++last_metric;
+    }
+    else {
+      memmove(gen_metrics, gen_metrics+1, 2*sizeof(double));
+    }
+    std::swap(c_last, c_prev);
+    ++g;
+    gen_metrics[last_metric] = viterbi.decode_around(y, c_last, c_prev);
     op_cmp += viterbi.op_cmp;
     op_add += viterbi.op_add;
     // Test stopping condition
     if (g >= 2) {
-      if (gen_metrics[g] == gen_metrics[g - 2]) {
+      if (gen_metrics[2] == gen_metrics[0]) {
         break;
       }
       ++op_cmp;
     }
     // Updating c_best
     replaced_best = false;
-    if (gen_metrics[g] < best_metric) {
+    if (gen_metrics[last_metric] < best_metric) {
       if (best_words_count == buf_size) {
         for (int j = 0; j < best_words_count - 1; ++j) {
           memcpy(best_words[j], best_words[j + 1], n * sizeof(int));
@@ -215,7 +225,7 @@ double KTKLDecoder::decode(const double *y, int *u) {
         ++best_words_count;
       }
       memcpy(best_words[best_words_count - 1], c_best, n * sizeof(int));
-      memcpy(c_best, gen_words[g], n * sizeof(int));
+      memcpy(c_best, c_last, n * sizeof(int));
       replaced_best = true;
     }
     ++op_cmp;
