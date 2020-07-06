@@ -21,5 +21,6 @@ class KTKLDecoder : public SoftDecoder {
   KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsigned int w, unsigned int buf_size);
   ~KTKLDecoder();
   double decode(const double *y, int* u) override;
+  unsigned int op_iters;
 };
 #endif //BEAST_INCLUDE_KTKLDECODER_H_

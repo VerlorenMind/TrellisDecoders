@@ -4,6 +4,7 @@
 #include <set>
 #include <algorithm>
 #include <unordered_set>
+#include <cassert>
 
 KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsigned int order, unsigned int buf_size)
     : buf_size(buf_size), order(order), first_candidate(n, k, g, 1), viterbi(n, k, h), SoftDecoder(n, k) {
@@ -78,10 +79,19 @@ KTKLDecoder::~KTKLDecoder() {
   delete[] l_words;
   delete[] c_best;
 }
+#ifdef CATCH_TESTING
+bool optimality_holds = false;
+#endif
+
 double KTKLDecoder::decode(const double *y, int *u) {
   op_add = 0;
   op_cmp = 0;
+  op_iters = 0;
+  memset(gen_metrics, 0, 3*sizeof(double));
 
+#ifdef CATCH_TESTING
+  optimality_holds = false;
+#endif
   for (unsigned int i = 0; i < n; ++i) {
     alpha[i] = y[i] < 0 ? 0 : 1;
     ++op_cmp;
@@ -154,6 +164,9 @@ double KTKLDecoder::decode(const double *y, int *u) {
     l1 = l1 > l2 ? l1 : l2;
     ++op_cmp;
     if(best_metric < l1) {
+#ifdef CATCH_TESTING
+      optimality_holds = true;
+#endif
       break;
     }
     ++op_cmp;
@@ -226,9 +239,11 @@ double KTKLDecoder::decode(const double *y, int *u) {
       }
       memcpy(best_words[best_words_count - 1], c_best, n * sizeof(int));
       memcpy(c_best, c_last, n * sizeof(int));
+      best_metric = gen_metrics[last_metric];
       replaced_best = true;
     }
     ++op_cmp;
+    ++op_iters;
   }
   for (unsigned int i = 0; i < n; ++i) {
     u[i] = c_best[i];
@@ -262,7 +277,10 @@ double KTKLDecoder::l(int **words, int h) {
     }
     int delta = l_weights[0] - d1.size();
     res = 0;
-    int range = delta >= d0.size() ? d0.size() : delta;
+    int range = 0;
+    if(delta >= 0) {
+      range = delta >= d0.size() ? d0.size() : delta;
+    }
     for (unsigned int i = 0; i < range; ++i) {
       res += beta[i];
       ++op_add;
@@ -284,13 +302,19 @@ double KTKLDecoder::l(int **words, int h) {
     Set d00(ind_comp), d01(ind_comp);
     std::set_intersection(d0[0].begin(), d0[0].end(), d0[1].begin(), d0[1].end(), std::inserter(d00, d00.begin()));
     std::set_intersection(d0[0].begin(), d0[0].end(), d1[1].begin(), d1[1].end(), std::inserter(d01, d01.begin()));
-    int range = (delta1 - delta2) / 2 < d01.size() ? (delta1 - delta2) / 2 : d01.size();
+    int range = 0;
+    if(delta1 - delta2 >= 0) {
+      range = (delta1 - delta2) / 2 < d01.size() ? (delta1 - delta2) / 2 : d01.size();
+    }
     auto iter = d01.begin();
     for (unsigned int i = 0; i < range; ++i) {
       d00.insert(*iter);
       ++iter;
     }
-    range = delta1 < d00.size() ? delta1 : d00.size();
+    range = 0;
+    if(delta1 >= 0) {
+      range = delta1 < d00.size() ? delta1 : d00.size();
+    }
     iter = d00.begin();
     for (unsigned int i = 0; i < range; ++i) {
       res += beta[*iter];
@@ -334,38 +358,47 @@ double KTKLDecoder::l(int **words, int h) {
     int delta13 = (delta[0] - delta[2]) / 2;
     delta13 = delta[0] < delta13 ? delta[0] : delta13;
     int delta1 = 0;
-    delta1 = delta12 - d[0b010].size() > delta1 ? delta12 - d[0b010].size() : delta1;
-    delta1 = delta13 - d[0b001].size() > delta1 ? delta13 - d[0b001].size() : delta1;
+    delta1 = delta12 - (int) d[0b010].size() > delta1 ? delta12 - d[0b010].size() : delta1;
+    delta1 = delta13 - (int) d[0b001].size() > delta1 ? delta13 - d[0b001].size() : delta1;
     int delta2 = d[0b011].size();
     delta2 = delta12 > delta1 ? delta12 : delta2;
     delta2 = delta13 > delta1 ? delta13 : delta2;
-    delta2 = d[0b000].size() + delta12 + delta13 - delta[0] > delta1 ? d[0b000].size() + delta12 + delta13 - delta[0]
+    delta2 = (int) d[0b000].size() + delta12 + delta13 - delta[0] > delta1 ? d[0b000].size() + delta12 + delta13 - delta[0]
                                                                      : delta2;
     if (delta1 <= delta2) {
       l1 = HUGE_VAL;
       for (int i = delta1; i <= delta2; ++i) {
         Set I(ind_comp);
         std::copy(d[0b000].begin(), d[0b000].end(), std::inserter(I, I.begin()));
-        int range = (delta13 - i) >= d[0b001].size() ? d[0b001].size() : (delta13 - i);
+        int range = 0;
+        if(delta13 - i >= 0) {
+          range = (delta13 - i) >= d[0b001].size() ? d[0b001].size() : (delta13 - i);
+        }
         auto iter = d[0b001].begin();
         for (unsigned int j = 0; j < range; ++j) {
           I.insert(*iter);
           ++iter;
         }
-        range = (delta12 - i) >= d[0b010].size() ? d[0b010].size() : (delta12 - i);
+        range = 0;
+        if(delta12 - i >= 0) {
+          range = (delta12 - i) >= d[0b010].size() ? d[0b010].size() : (delta12 - i);
+        }
         iter = d[0b010].begin();
         for (unsigned int j = 0; j < range; ++j) {
           I.insert(*iter);
           ++iter;
         }
         iter = I.begin();
-        if (delta[0] - i < I.size()) {
+        if ((delta[0] - i >= 0 ) && delta[0] - i < I.size()) {
           for (unsigned int j = 0; j < (delta[0] - j); ++j) {
             ++iter;
           }
         }
         I.erase(iter, I.end());
-        range = i < d[0b011].size() ? i : d[0b011].size();
+        range = 0;
+        if(i >= 0) {
+          range = i < d[0b011].size() ? i : d[0b011].size();
+        }
         iter = d[0b011].begin();
         for (unsigned int j = 0; j < range; ++j) {
           I.insert(*iter);
@@ -402,8 +435,8 @@ double KTKLDecoder::l(int **words, int h) {
     delta1 -= d[0b000].size();
     delta1 = delta1 > 0 ? delta1 : 0;
     delta2 = d[0b100].size();
-    delta2 = delta2 < (d[0b010].size() - delta12) ? delta2 : d[0b010].size() - delta12;
-    delta2 = delta2 < (d[0b001].size() - delta13) ? delta2 : d[0b001].size() - delta13;
+    delta2 = delta2 < ((int) d[0b010].size() - delta12) ? delta2 : d[0b010].size() - delta12;
+    delta2 = delta2 < ((int) d[0b001].size() - delta13) ? delta2 : d[0b001].size() - delta13;
     delta2 = delta2 < mean_delta12 ? delta2 : mean_delta12;
     if (delta1 < delta2) {
       l2 = HUGE_VAL;

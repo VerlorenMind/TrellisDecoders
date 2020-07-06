@@ -61,6 +61,7 @@ void test_bsd_decoder(int tests, double stn, std::string filename) {
   sim.setSTN(stn);
   sim.test_run();
 }
+
 void test_KTKL_decoder(int tests, double stn, int w, int buf_size, const std::string &filename) {
   std::ifstream in(filename);
   Simulation sim(in, 0, tests);

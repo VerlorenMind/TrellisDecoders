@@ -12,6 +12,9 @@
 #include "Simulation.h"
 #include "Exceptions.h"
 
+#define DIRTY_HACK
+#define CUTOFF 8
+
 const double EPSILON = 0.0000001;
 
 void Simulation::generate_information_vector() {
@@ -186,6 +189,7 @@ Simulation::Simulation(std::ifstream &input_file, double stn, SoftDecoder *decod
   bit_errors_by_decoder.resize(decoders.size());
   cmp_ops_by_decoder.resize(decoders.size());
   add_ops_by_decoder.resize(decoders.size());
+  algo_iters_by_decoder.resize(decoders.size());
 }
 
 Simulation::~Simulation() {
@@ -224,6 +228,7 @@ void Simulation::run() {
   std::fill(add_ops_by_decoder.begin(), add_ops_by_decoder.end(), 0);
   iters_by_decoder.resize(decoders.size());
   std::fill(iters_by_decoder.begin(), iters_by_decoder.end(), 0);
+  algo_iters_by_decoder.resize(decoders.size());
   std::vector<bool> decoder_stopped(decoders.size());
   bool all_stopped = false;
   std::fill(decoder_stopped.begin(), decoder_stopped.end(), false);
@@ -232,6 +237,22 @@ void Simulation::run() {
     generate_information_vector();
     encode();
     apply_noise();
+#ifdef DIRTY_HACK
+    // A dirty, dirty hack to simulate algebraic decoder
+    int errors = 0;
+    for(unsigned int i=0; i<n; ++i) {
+      if(!((ux[i] == 1 && (x[i] > 0)) || (ux[i] == 0 && (x[i] < 0)))) {
+        ++errors;
+      }
+    }
+    if(errors < CUTOFF) {
+      for(unsigned int i=0; i<n; ++i) {
+        if(!((ux[i] == 1 && (x[i] > 0)) || (ux[i] == 0 && (x[i] < 0)))) {
+          x[i] *= -1;
+        }
+      }
+    }
+#endif
     for (unsigned long i = 0; i < decoders.size(); ++i) {
       if (decoder_stopped[i]) {
         continue;
@@ -239,6 +260,9 @@ void Simulation::run() {
       decoders[i]->decode(x, y);
       cmp_ops_by_decoder[i] += decoders[i]->op_cmp;
       add_ops_by_decoder[i] += decoders[i]->op_add;
+      if(decoders[i]->get_id() == DecoderID::KTKL) {
+        ++algo_iters_by_decoder[i];
+      }
       if (!check_decoded_word(i)) {
         ++errors_by_decoder[i];
         if (errors_by_decoder[i] >= max_errors) {
@@ -269,6 +293,7 @@ void Simulation::setSTN(double stn) {
 }
 
 #ifdef CATCH_TESTING
+extern bool optimality_holds;
 void Simulation::test_run(bool silent) {
   for(auto fcase : failed_cases) {
     delete[] fcase.ux;
@@ -344,6 +369,10 @@ void Simulation::test_run(bool silent) {
         CHECK(false);
       }
     }
+    if(decoders[0]->get_id() == DecoderID::KTKL) {
+      INFO("Optimality test: " << optimality_holds);
+      CHECK((!optimality_holds || (calcWeight < metric || fabs(calcWeight - metric) < EPSILON)));
+    }
     if (!((test + 1) % 250)) {
       WARN("Time to decode " << test + 1 << " words: " << overall << "ms");
     }
@@ -354,13 +383,16 @@ void Simulation::test_run(bool silent) {
 #endif
 
 void Simulation::log_header() {
-  std::cout << "STN,DEV,ITERS,";
+  std::cout << "STN,DEV,";
   for (auto dec : decoders) {
     std::string name = idToString(dec->get_id());
     std::cout << name << "-FER,";
     std::cout << name << "-BER,";
     std::cout << name << "-CMP,";
     std::cout << name << "-ADD,";
+    if(dec->get_id() == DecoderID::KTKL) {
+      std::cout << name << "-ITERS";
+    }
   }
   std::cout << std::endl;
 }
@@ -373,6 +405,9 @@ void Simulation::log() {
               << 1.0 * bit_errors_by_decoder[i] / (n*iters_by_decoder[i]) << ","
               << 1.0 * cmp_ops_by_decoder[i] / iters_by_decoder[i] << ","
               << 1.0 * add_ops_by_decoder[i] / iters_by_decoder[i] << ",";
+    if(decoders[i]->get_id() == DecoderID::KTKL) {
+      std::cout << 1.0 * algo_iters_by_decoder[i] / iters_by_decoder[i] << ",";
+    }
   }
   std::cout << std::endl;
 }

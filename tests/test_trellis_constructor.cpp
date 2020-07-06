@@ -205,11 +205,11 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
 }
 
 TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
-  std::ifstream filename("../data/bch-31-16-bit-order");
+  std::ifstream filename("../data/reed-muller-16-1-bit-order");
   std::ofstream out;
   std::string name;
   unsigned int n, k;
-  unsigned int w = 3;
+  unsigned int w = 18;
   std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);

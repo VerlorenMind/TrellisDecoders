@@ -42,6 +42,7 @@ class Simulation {
   std::vector<long> cmp_ops_by_decoder;
   std::vector<long> add_ops_by_decoder;
   std::vector<long> bit_errors_by_decoder;
+  std::vector<long> algo_iters_by_decoder;
   explicit Simulation(std::ifstream &input_file, unsigned int max_errors = 0,
                       unsigned int max_iterations = 0, unsigned int seed = 123);
   Simulation(std::ifstream &input_file, std::ifstream &run_config);
