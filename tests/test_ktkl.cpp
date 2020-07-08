@@ -101,16 +101,12 @@ TEST_CASE("KTKL: Can decode series of random words with minimal noise", "[ktkl]"
   test_KTKL_decoder(1000, 100, 1, 3, "../tests/test_matrix");
 }
 
-TEST_CASE("KTKL: Can decode series of random words with some noise", "[ktkl]") {
+TEST_CASE("KTKL: Can decode series of random words with some noise", "[ktkl], [this]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../tests/test_matrix");
 }
 
 TEST_CASE("KTKL: Can decode BCH(7, 4, 3)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-7-4");
-}
-
-TEST_CASE("KTKL: Can decode BCH(7, 1, 5)", "[ktkl]") {
-  test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-7-1");
 }
 
 TEST_CASE("KTKL: Can decode EBCH(8, 4, 4)", "[ktkl]") {
@@ -179,7 +175,7 @@ TEST_CASE("KTKL: Can decode EBCH(64, 45) in SBO", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-64-45-bit-order");
 }
 TEST_CASE("KTKL: Can decode EBCH(64, 24) in SBO", "[ktkl]") {
-  test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-64-24-bit-order");
+  test_KTKL_decoder(1000, 1, 2, 3, "../data/bch-64-24-bit-order");
 }
 TEST_CASE("KTKL: Can outperform OSD", "[ktkl]") {
   std::ifstream in("../data/bch-64-24-bit-order");

@@ -38,7 +38,7 @@ void minspanForm(unsigned int n, unsigned int k, int **a) {
   while (fixed_rows < k) {
     tempmatr = matrixToSstream(k, n, a).str();
     num = 0;
-    for (int j = fixed_rows; j < k; ++j) {
+    for (unsigned int j = fixed_rows; j < k; ++j) {
       if (a[j][i]) {
         rows[num++] = (unsigned int) j;
       }
@@ -113,7 +113,7 @@ void minspanForm(unsigned int n, unsigned int k, int **a, std::vector<unsigned> 
   int i = 0;
   while (fixed_rows < k) {
     num = 0;
-    for (int j = fixed_rows; j < k; ++j) {
+    for (unsigned int j = fixed_rows; j < k; ++j) {
       if (a[j][i]) {
         rows[num++] = (unsigned int) j;
       }
@@ -235,8 +235,8 @@ unsigned int quicksort(unsigned int n, double *x, std::vector<int> &permutation)
 }
 
 void echelonForm(unsigned int n, unsigned int k, int **x) {
-  int r = 0;
-  int c = 0;
+  unsigned int r = 0;
+  unsigned int c = 0;
   while (r < k && c < n) {
     int index = -1;
     for (unsigned int i = r; i < k; ++i) {

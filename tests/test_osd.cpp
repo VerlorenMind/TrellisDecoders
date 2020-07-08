@@ -14,7 +14,7 @@ TEST_CASE("OSD: Can decode zero word") {
   int **g;
   g = readMatrix(filename, n, k);
   filename.close();
-  double w = 0;
+  int w = 0;
   OrderedStatisticsDecoder dec(n, k, g, w);
   double *x = new double[n];
   int *u = new int[n];
@@ -47,7 +47,7 @@ TEST_CASE("OSD: Can decode non-zero word") {
   unsigned int n, k;
   filename >> n >> k;
   g = readMatrix(filename, n, k);
-  double w = 2;
+  int w = 2;
   OrderedStatisticsDecoder dec(n, k, g, w);
   double *x = new double[n];
   int *y = new int[n];

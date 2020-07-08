@@ -97,7 +97,7 @@ Simulation::Simulation(std::ifstream &input_file, unsigned int max_errors,
   dev = 0;
   stn = 0;
   if (seed == 0) {
-    seed = std::chrono::system_clock::now().time_since_epoch().count();
+    seed = (unsigned int) std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
   x = new double[n];
@@ -119,7 +119,7 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
   unsigned int seed;
   linestr >> seed;
   if (seed == 0) {
-    seed = std::chrono::system_clock::now().time_since_epoch().count();
+    seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
   decoders.resize(0);
@@ -178,7 +178,7 @@ Simulation::Simulation(std::ifstream &input_file, double stn, SoftDecoder *decod
                        unsigned int max_iterations, unsigned int seed) : Simulation(input_file) {
   setSTN(stn);
   if (seed == 0) {
-    seed = std::chrono::system_clock::now().time_since_epoch().count();
+    seed = (unsigned int)std::chrono::system_clock::now().time_since_epoch().count();
   }
   gen.seed(seed);
   this->max_errors = max_errors;
