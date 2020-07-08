@@ -4774,7 +4774,7 @@ namespace Catch {
 #ifdef __AFXDLL
 #include <AfxWin.g>
 #else
-#include <windows.g>
+#include <windows.h>
 #endif
 
 #ifdef CATCH_DEFINED_NOMINMAX

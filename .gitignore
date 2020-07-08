@@ -10,3 +10,14 @@ todo
 *.gv
 *.csv
 run*
+.vs/
+.runsettings
+*.sln*
+TrellisDecoders/
+TrellisDecodersTests/
+Debug/
+*.json
+bin/
+x64/
+Win32/
+*~

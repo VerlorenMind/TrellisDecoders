@@ -205,7 +205,7 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
 }
 
 TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
-  std::ifstream filename("../data/reed-muller-16-1-bit-order");
+  std::ifstream filename("../data/bch-64-24-bit-order");
   std::ofstream out;
   std::string name;
   unsigned int n, k;

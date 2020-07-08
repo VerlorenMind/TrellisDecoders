@@ -2,7 +2,7 @@
 
 void exhaustive_subtrellis_verification(unsigned int n, unsigned int k, int** g, Trellis &trellis, unsigned int w, int** check) {
   int *codeword = new int[n];
-  int word_weight = 0;
+  unsigned int word_weight = 0;
   for(uint64_t infoword=1; infoword<(uint64_t(1)<< k); ++infoword) {
     memset(codeword, 0, n*sizeof(int));
     word_weight = 0;

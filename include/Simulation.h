@@ -16,7 +16,7 @@ struct TestCase {
 class Simulation {
  private:
   unsigned int n, k, test;
-  unsigned int max_iterations, max_errors;
+  unsigned long max_iterations, max_errors;
   int **g, **h;
   double dev, stn;
   double *x;
@@ -37,12 +37,12 @@ class Simulation {
 #ifdef CATCH_TESTING
  std::vector<TestCase> failed_cases;
 #endif
-  std::vector<long> errors_by_decoder;
-  std::vector<long> iters_by_decoder;
-  std::vector<long> cmp_ops_by_decoder;
-  std::vector<long> add_ops_by_decoder;
-  std::vector<long> bit_errors_by_decoder;
-  std::vector<long> algo_iters_by_decoder;
+  std::vector<unsigned long> errors_by_decoder;
+  std::vector<unsigned long> iters_by_decoder;
+  std::vector<unsigned long> cmp_ops_by_decoder;
+  std::vector<unsigned long> add_ops_by_decoder;
+  std::vector<unsigned long> bit_errors_by_decoder;
+  std::vector<unsigned long> algo_iters_by_decoder;
   explicit Simulation(std::ifstream &input_file, unsigned int max_errors = 0,
                       unsigned int max_iterations = 0, unsigned int seed = 123);
   Simulation(std::ifstream &input_file, std::ifstream &run_config);

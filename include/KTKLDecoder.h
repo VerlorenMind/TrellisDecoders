@@ -2,6 +2,7 @@
 #define BEAST_INCLUDE_KTKLDECODER_H_
 
 #include <utility>
+#include <bitset>
 
 #include "SoftDecoder.h"
 #include "ViterbiDecoder.h"
@@ -17,6 +18,8 @@ class KTKLDecoder : public SoftDecoder {
   std::vector<int> weight_profile;
   std::vector<int> sorted_beta_ind;
   double l(int **words, int h);
+  void index_set_union(std::bitset<128> &first, const std::bitset<128> &second, int range);
+  double record_result(const std::bitset<128> &set, int range);
  public:
   KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h, unsigned int w, unsigned int buf_size);
   ~KTKLDecoder();
