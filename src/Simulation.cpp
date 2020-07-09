@@ -261,7 +261,7 @@ void Simulation::run() {
       cmp_ops_by_decoder[i] += decoders[i]->op_cmp;
       add_ops_by_decoder[i] += decoders[i]->op_add;
       if(decoders[i]->get_id() == DecoderID::KTKL) {
-        ++algo_iters_by_decoder[i];
+        algo_iters_by_decoder[i] += ((KTKLDecoder*) decoders[i])->op_iters;
       }
       if (!check_decoded_word(i)) {
         ++errors_by_decoder[i];

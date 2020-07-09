@@ -15,7 +15,7 @@ class KTKLDecoder : public SoftDecoder {
   unsigned int order, buf_size;
   int **check, *c_best, *l_weights, **best_words, **l_words, *c_last, *c_prev;
   double *gen_metrics, *best_metrics;
-  std::vector<int> weight_profile;
+  std::vector<int> w_profile;
   std::vector<int> sorted_beta_ind;
   double l(int **words, int h);
   void index_set_union(std::bitset<128> &first, const std::bitset<128> &second, int range);

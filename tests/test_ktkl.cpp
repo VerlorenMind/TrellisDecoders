@@ -101,7 +101,7 @@ TEST_CASE("KTKL: Can decode series of random words with minimal noise", "[ktkl]"
   test_KTKL_decoder(1000, 100, 1, 3, "../tests/test_matrix");
 }
 
-TEST_CASE("KTKL: Can decode series of random words with some noise", "[ktkl], [this]") {
+TEST_CASE("KTKL: Can decode series of random words with some noise", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../tests/test_matrix");
 }
 
@@ -117,7 +117,7 @@ TEST_CASE("KTKL: Can decode BCH(31, 16, 7)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-31-16-7");
 }
 
-TEST_CASE("KTKL: Can decode BCH(31, 21, 5)", "[ktkl]") {
+TEST_CASE("KTKL: Can decode BCH(31, 21, 5)", "[ktkl], [this]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-31-21-5");
 }
 

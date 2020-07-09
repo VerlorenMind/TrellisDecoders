@@ -205,15 +205,17 @@ TEST_CASE("CONSTRUCTOR: Minspan form for RM(16,5) check matrix is achieved") {
 }
 
 TEST_CASE("TRELLIS: Can reduce a trellis to weight") {
-  std::ifstream filename("../data/bch-64-24-bit-order");
+  std::ifstream filename("../data/bch-32-21-bit-order");
   std::ofstream out;
   std::string name;
   unsigned int n, k;
-  unsigned int w = 18;
+  unsigned int w = 8;
   std::getline(filename, name);
   filename >> n >> k;
   int **matrix = readMatrix(filename, n, k);
   int **check = readMatrix(filename, n, n-k);
+  std::vector<int> w_profile = weight_profile(n, k, matrix);
+  WARN(arrayToSstream(w_profile.size(), w_profile.data()).str());
   Trellis trel;
   trel.construct_from_check_matrix(n, k, check);
   out.open("../tests/trellis.gv");

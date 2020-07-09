@@ -175,3 +175,65 @@ TEST_CASE("VITERBI: Can decode EBCH(64, 51) in SBO", "[viterbi]") {
 TEST_CASE("VITERBI: Can decode EBCH(64, 45) in SBO", "[viterbi]") {
   test_viterbi_decoder(1000, 1, "../data/bch-64-45-bit-order");
 }
+
+TEST_CASE("VITERBI: Can decode in reduced trellis", "[viterbi]") {
+  std::ifstream filename("../tests/test_matrix");
+  std::string name;
+  std::getline(filename, name);
+  int **g, **h;
+  unsigned int n, k;
+  filename >> n >> k;
+  g = readMatrix(filename, n, k);
+  h = readMatrix(filename, n, n-k);
+  ViterbiDecoder dec(n, k, h);
+  double *x = new double[n];
+  int *y = new int[n];
+  int *u = new int[n];
+  int *u_around = new int[n];
+  u[0] = 0;
+  u[1] = 1;
+  u[2] = 1;
+  u[3] = 1;
+  u[4] = 1;
+  u[5] = 0;
+  u_around[0] = 0;
+  u_around[1] = 0;
+  u_around[2] = 0;
+  u_around[3] = 1;
+  u_around[4] = 1;
+  u_around[5] = 1;
+  x[0] = -0.503536;
+  x[1] = 0.423184;
+  x[2] = 1.87715;
+  x[3] = -0.107348;
+  x[4] = 1.7087;
+  x[5] = -1.10187;
+  // True weight: -0.107348
+
+  std::string codeword = "000000";
+
+  dec.trellis.reduce_to_weight(3);
+  std::ofstream out;
+  out.open("../tests/trellis.gv");
+  dec.trellis.print_trellis(out);
+  out.close();
+  system("dot ../tests/trellis.gv -Tpng -o ../tests/trellis.png");
+
+  dec.decode_around(x, y, u_around);
+
+  for (unsigned int j = 0; j < n; ++j) {
+    codeword[j] = y[j] ? '1' : '0';
+  }
+  INFO("Decoded word: " << codeword);
+  for (unsigned int i = 0; i < n; ++i) {
+    CHECK(y[i] == u[i]);
+  }
+
+  for (unsigned int i = 0; i < k; ++i) {
+    delete[] g[i];
+  }
+  delete[] g;
+  delete[] x;
+  delete[] u;
+  delete[] y;
+}

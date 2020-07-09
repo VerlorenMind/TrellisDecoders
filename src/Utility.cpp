@@ -290,3 +290,38 @@ std::vector<std::vector<int>> combinations(unsigned int n, unsigned int k) {
   return combs;
 }
 
+std::vector<int> weight_profile(int n, int k, int **g) {
+  std::vector<int> weight_profile;
+  weight_profile.resize(0);
+  int word_weight = 0;
+  int *codeword = new int[n];
+  for (uint64_t infoword = 0; infoword < (uint64_t(1) << k); ++infoword) {
+    if (infoword == 0) {
+      memset(codeword, 0, n * sizeof(int));
+    } else {
+      uint64_t bit_diff = infoword ^(infoword - 1);
+      for (unsigned int l = 0; l < k; ++l) {
+        if (bit_diff & (uint64_t(1) << l)) {
+          for (unsigned int j = 0; j < n; ++j) {
+            codeword[j] ^= g[l][j];
+          }
+        }
+      }
+    }
+    word_weight = 0;
+    for (unsigned int i = 0; i < n; ++i) {
+      word_weight += codeword[i];
+    }
+    auto iter = weight_profile.begin();
+    while (iter != weight_profile.end() && *iter < word_weight) {
+      ++iter;
+    }
+    if (iter == weight_profile.end()) {
+      weight_profile.push_back(word_weight);
+    } else if (*iter != word_weight) {
+      weight_profile.insert(iter, word_weight);
+    }
+  }
+  delete[] codeword;
+  return weight_profile;
+}

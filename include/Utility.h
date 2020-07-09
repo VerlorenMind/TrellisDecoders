@@ -38,4 +38,6 @@ void echelonForm(unsigned int n, unsigned int k, int **x);
 
 std::vector<std::vector<int>> combinations(unsigned int n, unsigned int k);
 
+std::vector<int> weight_profile(int n, int k, int **g);
+
 #endif //BEAST_UTIL_H

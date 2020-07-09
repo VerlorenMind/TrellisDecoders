@@ -330,7 +330,7 @@ void Trellis::reduce_to_weight(unsigned int w) {
     unsigned long long state = 0;
     unsigned long long original_size = trellis[i].size();
     for(unsigned long long l = 0; l < original_size; ++l) {
-      // Purging if the weight of the minimum path is greater than w
+      // Purging if the weight of the minimum path is greater than w_profile
       if(min_weight_to[i][l] + min_weight_from[i][l] > w) {
         delete_node(i, state);
       }
@@ -352,7 +352,7 @@ void Trellis::reduce_to_weight(unsigned int w) {
       }
     }
   }
-  // Dealing with leftover paths of weight above w
+  // Dealing with leftover paths of weight above w_profile
   // Finding the first non-zero merging into all-zero path
   unsigned start_index = 1;
   for(; start_index<trellis_size-1; ++start_index) {
