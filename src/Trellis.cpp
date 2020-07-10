@@ -334,10 +334,6 @@ void Trellis::reduce_to_weight(unsigned int w) {
       if(min_weight_to[i][l] + min_weight_from[i][l] > w) {
         delete_node(i, state);
       }
-      // If no incoming edges, purge
-      else if(trellis[i][state].prev_node[0] == ~0 && trellis[i][state].prev_node[1] == ~0) {
-        delete_node(i, state);
-      }
       // Purging branches of paths with excessive weight
       else {
         unsigned long long next_state;
@@ -349,6 +345,19 @@ void Trellis::reduce_to_weight(unsigned int w) {
           }
         }
         ++state;
+      }
+    }
+  }
+  // Deleting nodes with no incoming edges
+  bool altered = true;
+  while(altered) {
+    altered = false;
+    for (unsigned i = 1; i < trellis_size; ++i) {
+      for (unsigned long long l = 0; l < trellis[i].size(); ++l) {
+        while (l < trellis[i].size() && trellis[i][l].prev_node[0] == ~0 && trellis[i][l].prev_node[1] == ~0) {
+          delete_node(i, l);
+          altered = true;
+        }
       }
     }
   }

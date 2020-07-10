@@ -112,7 +112,6 @@ double KTKLDecoder::decode(const double *y, int *u) {
   while (true) {
     ++op_iters;
     // Test optimality of c_best
-    /*
     double l1;
     for (unsigned int i = 0; i < h - 1; ++i) {
       if (i == h-2) {
@@ -148,7 +147,6 @@ double KTKLDecoder::decode(const double *y, int *u) {
       break;
     }
     ++op_cmp;
-     */
     // Updating bG
     if (!replaced_best) {
       // Finding the place to insert the word
