@@ -172,6 +172,7 @@ Simulation::Simulation(std::ifstream &input_file, std::ifstream &run_config) : S
   bit_errors_by_decoder.resize(decoders.size());
   cmp_ops_by_decoder.resize(decoders.size());
   add_ops_by_decoder.resize(decoders.size());
+  algo_iters_by_decoder.resize(decoders.size());
 }
 
 Simulation::Simulation(std::ifstream &input_file, double stn, SoftDecoder *decoder, unsigned int max_errors,
@@ -229,6 +230,7 @@ void Simulation::run() {
   iters_by_decoder.resize(decoders.size());
   std::fill(iters_by_decoder.begin(), iters_by_decoder.end(), 0);
   algo_iters_by_decoder.resize(decoders.size());
+  std::fill(algo_iters_by_decoder.begin(), algo_iters_by_decoder.end(), 0);
   std::vector<bool> decoder_stopped(decoders.size());
   bool all_stopped = false;
   std::fill(decoder_stopped.begin(), decoder_stopped.end(), false);

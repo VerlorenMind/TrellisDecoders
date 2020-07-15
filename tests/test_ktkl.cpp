@@ -117,7 +117,7 @@ TEST_CASE("KTKL: Can decode BCH(31, 16, 7)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-31-16-7");
 }
 
-TEST_CASE("KTKL: Can decode BCH(31, 21, 5)", "[ktkl], [this]") {
+TEST_CASE("KTKL: Can decode BCH(31, 21, 5)", "[ktkl]") {
   test_KTKL_decoder(1000, 1, 1, 3, "../data/bch-31-21-5");
 }
 

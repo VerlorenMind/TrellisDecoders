@@ -168,3 +168,7 @@ TEST_CASE("OSD: Can decode EBCH(64, 51) in SBO") {
 TEST_CASE("OSD: Can decode EBCH(64, 45) in SBO") {
   test_osd_decoder(1000, 1, 2, "../data/bch-64-45-bit-order");
 }
+
+TEST_CASE("OSD: Can decode EBCH(64, 24) in SBO") {
+  test_osd_decoder(1000, 1, 2, "../data/bch-64-24-bit-order");
+}

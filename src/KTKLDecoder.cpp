@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include "CatchWrap.h"
 
+const double EPSILON = 0.000000001;
+
 KTKLDecoder::KTKLDecoder(unsigned int n, unsigned int k, int **g, int **h,
                          unsigned int order, unsigned int buf_size)
     : buf_size(buf_size),
@@ -108,13 +110,14 @@ double KTKLDecoder::decode(const double *y, int *u) {
   op_add += first_candidate.op_add;
   unsigned int h = 1;
   unsigned int best_words_count = 0;
+  unsigned int worst_best_word = 0;
   bool replaced_best = true;
   while (true) {
     ++op_iters;
     // Test optimality of c_best
     double l1;
     for (unsigned int i = 0; i < h - 1; ++i) {
-      if (i == h-2) {
+      if (i == h-2 && !replaced_best) {
         l_words[i] = c_best;
       } else {
         l_words[i] = best_words[i];
@@ -127,7 +130,7 @@ double KTKLDecoder::decode(const double *y, int *u) {
     double l2;
     if (g >= buf_size) {
       for (unsigned int i = 0; i < h; ++i) {
-        if (i == h-1) {
+        if (i == h-1 && !replaced_best) {
           l_words[i] = c_best;
         } else {
           l_words[i] = best_words[i];
@@ -135,10 +138,8 @@ double KTKLDecoder::decode(const double *y, int *u) {
         l_weights[i] = w_profile[order + 1];
       }
       l2 = l(l_words, h);
-    } else {
-      l2 = 0;
+      l1 = l1 > l2 ? l1 : l2;
     }
-    l1 = l1 > l2 ? l1 : l2;
     ++op_cmp;
     if (best_metric <= l1) {
 #ifdef CATCH_TESTING
@@ -149,21 +150,28 @@ double KTKLDecoder::decode(const double *y, int *u) {
     ++op_cmp;
     // Updating bG
     if (!replaced_best) {
-      // Finding the place to insert the word
-      unsigned int i = 0;
-      for (i = 0;
-           i < best_words_count && best_metrics[i] < gen_metrics[last_metric];
-           ++i) {
-        ++op_cmp;
+      // If there is place in the buffer, insert c_last in the end
+      if(best_words_count < buf_size) {
+        memcpy(best_words[best_words_count], c_last, n * sizeof(int));
+        best_metrics[best_words_count] = gen_metrics[last_metric];
+        if(best_metrics[best_words_count] > best_metrics[worst_best_word]) worst_best_word = best_words_count;
+        ++best_words_count;
       }
-      ++op_cmp;
-      for (int j = (int) buf_size - 1; j > (int) i; --j) {
-        memcpy(best_words[j], best_words[j - 1], n * sizeof(int));
-        best_metrics[j] = best_metrics[j - 1];
+      // Else, checking if it is better than the worst best word (what)
+      else if(best_metrics[worst_best_word] >= gen_metrics[last_metric]) {
+        for(unsigned int j = worst_best_word; j < best_words_count-1; ++j) {
+          memcpy(best_words[j], best_words[j + 1], n * sizeof(int));
+          best_metrics[j] = best_metrics[j + 1];
+        }
+        memcpy(best_words[best_words_count], c_last, n * sizeof(int));
+        best_metrics[best_words_count] = gen_metrics[last_metric];
+        worst_best_word = 0;
+        for(unsigned int j=1; j<best_words_count; ++j) {
+          if(best_metrics[worst_best_word] < best_metrics[j]) {
+            worst_best_word = j;
+          }
+        }
       }
-      best_words_count = best_words_count == buf_size ? best_words_count : best_words_count + 1;
-      memcpy(best_words[i], c_last, n * sizeof(int));
-      best_metrics[i] = gen_metrics[last_metric];
     }
     // If not optimal, search trellis
     // Searching subtrellis
@@ -181,24 +189,30 @@ double KTKLDecoder::decode(const double *y, int *u) {
     // Updating c_best
     replaced_best = false;
     if (gen_metrics[last_metric] < best_metric) {
-      for (int j = (int) buf_size - 1; j > 0; --j) {
-        memcpy(best_words[j], best_words[j - 1], n * sizeof(int));
-        best_metrics[j] = best_metrics[j - 1];
+      if(best_words_count >= buf_size) {
+        for (int j = 0; j < best_words_count-1; ++j) {
+          memcpy(best_words[j], best_words[j + 1], n * sizeof(int));
+          best_metrics[j] = best_metrics[j + 1];
+        }
+        worst_best_word = 1;
+        for(unsigned int j=2; j<best_words_count; ++j) {
+          if(best_metrics[worst_best_word] < best_metrics[j]) {
+            worst_best_word = j;
+          }
+        }
       }
+      memcpy(best_words[best_words_count], c_best, n * sizeof(int));
+      best_metrics[best_words_count] = best_metric;
       best_words_count = best_words_count == buf_size ? best_words_count : best_words_count + 1;
-      memcpy(best_words[0], c_best, n * sizeof(int));
-      best_metrics[0] = best_metric;
       memcpy(c_best, c_last, n * sizeof(int));
       best_metric = gen_metrics[last_metric];
       replaced_best = true;
     }
-    ++op_cmp;
     // Test stopping condition
     if (g >= 2) {
-      if (gen_metrics[2] == gen_metrics[0]) {
+      if (gen_metrics[2] - gen_metrics[0] < EPSILON) {
         break;
       }
-      ++op_cmp;
     }
   }
   for (unsigned int i = 0; i < n; ++i) {
@@ -212,6 +226,7 @@ double KTKLDecoder::l(int **words, int h) {
   if (h == 1) {
     std::bitset<128> d0, d1;
     d0.reset();
+    d1.reset();
     for (unsigned int i = 0; i < n; ++i) {
       if (words[0][i] == alpha[i]) {
         d0.set(i);
@@ -220,20 +235,17 @@ double KTKLDecoder::l(int **words, int h) {
       }
     }
     int delta = l_weights[0] - (int) d1.count();
-    res = 0;
     res = record_result(d0, delta);
   } else if (h == 2) {
     std::bitset<128> d0[2], d1[2];
-    d0[0].reset();
-    d0[1].reset();
-    d1[0].reset();
-    d1[1].reset();
     for (unsigned int z = 0; z < 2; ++z) {
+      d0[z].reset();
+      d1[z].reset();
       for (unsigned int i = 0; i < n; ++i) {
-        if (words[z][i] != alpha[i]) {
+        if (words[z][i] == alpha[i]) {
           d0[z].set(i);
         } else {
-          d1[z].set(1);
+          d1[z].set(i);
         }
       }
     }
@@ -256,8 +268,9 @@ double KTKLDecoder::l(int **words, int h) {
     int delta[3];
     for (unsigned int z = 0; z < 3; ++z) {
       d0[z].reset();
+      d1[z].reset();
       for (unsigned int i = 0; i < n; ++i) {
-        if (words[z][i] != alpha[i]) {
+        if (words[z][i] == alpha[i]) {
           d0[z].set(i);
         } else {
           d1[z].set(i);
@@ -265,18 +278,18 @@ double KTKLDecoder::l(int **words, int h) {
       }
       delta[z] = l_weights[z] - (int) d1[z].count();
     }
-    std::vector<int> order;
-    order.resize(3);
-    for (int i = 0; i < 3; ++i) order[i] = i;
-    std::sort(order.begin(), order.end(), [&delta](const int &a, const int &b) {
+    std::vector<int> delta_order;
+    delta_order.resize(3);
+    for (int i = 0; i < 3; ++i) delta_order[i] = i;
+    std::sort(delta_order.begin(), delta_order.end(), [&delta](const int &a, const int &b) {
       return delta[a] > delta[b];
     });
     for (unsigned int i = 0; i < 3; ++i) {
-      while (order[i] != i) {
-        std::swap(d0[i], d0[order[i]]);
-        std::swap(d1[i], d1[order[i]]);
-        std::swap(delta[i], delta[order[i]]);
-        std::swap(order[i], order[order[i]]);
+      while (delta_order[i] != i) {
+        std::swap(d0[i], d0[delta_order[i]]);
+        std::swap(d1[i], d1[delta_order[i]]);
+        std::swap(delta[i], delta[delta_order[i]]);
+        std::swap(delta_order[i], delta_order[delta_order[i]]);
       }
     }
     for (unsigned int i = 0; i < 8; ++i) {
@@ -298,20 +311,16 @@ double KTKLDecoder::l(int **words, int h) {
       }
     }
     int delta12 = (delta[0] - delta[1]) / 2;
-    delta12 = delta[0] < delta12 ? delta[0] : delta12;
+    delta12 = std::min(delta[0], delta12);
     int delta13 = (delta[0] - delta[2]) / 2;
-    delta13 = delta[0] < delta13 ? delta[0] : delta13;
+    delta13 = std::min(delta[0], delta13);
     int delta1 = 0;
-    delta1 = delta12 - (int) d[0b010].count() > delta1 ? delta12 - (int) d[0b010].count()
-                                                       : delta1;
-    delta1 = delta13 - (int) d[0b001].count() > delta1 ? delta13 - (int) d[0b001].count()
-                                                       : delta1;
+    delta1 = std::max(delta12, (int) d[0b010].count());
+    delta1 = std::max(delta13 - (int) d[0b001].count(), delta1);
     int delta2 = (int) d[0b011].count();
-    delta2 = delta12 < delta2 ? delta12 : delta2;
-    delta2 = delta13 < delta2 ? delta13 : delta2;
-    delta2 = (int) d[0b000].count() + delta12 + delta13 - delta[0] < delta2
-             ? (int) d[0b000].count() + delta12 + delta13 - delta[0]
-             : delta2;
+    delta2 = std::min(delta12, delta2);
+    delta2 = std::min(delta13, delta2);
+    delta2 = std::min((int) d[0b000].count() + delta12 + delta13 - delta[0], delta2);
     l1 = HUGE_VAL;
     for (int i = delta1; i <= delta2; ++i) {
       std::bitset<128> I, I2;
@@ -325,7 +334,7 @@ double KTKLDecoder::l(int **words, int h) {
       }
       index_set_union(I, d[0b011], i);
       double temp = record_result(I, (int) I.count());
-      if (l1 < temp) {
+      if (l1 > temp) {
         l1 = temp;
       }
       ++op_cmp;
@@ -345,17 +354,12 @@ double KTKLDecoder::l(int **words, int h) {
     int mean_delta12 =
         ((delta[1] + delta[2]) / 2) +
             ((delta[1] + delta[2]) % 2);  // ceil((delta[1] + delta[2]) / 2)
-    delta1 = mean_delta12;
-    delta1 -= (int) d[0b000].count();
-    delta1 = delta1 > 0 ? delta1 : 0;
+    delta1 = mean_delta12 - (int) d[0b000].count();
+    delta1 = std::max(delta1, 0);
     delta2 = (int) d[0b100].count();
-    delta2 = delta2 < ((int) d[0b010].count() - delta12)
-             ? delta2
-             : (int) d[0b010].size() - delta12;
-    delta2 = delta2 < ((int) d[0b001].count() - delta13)
-             ? delta2
-             : (int) d[0b001].count() - delta13;
-    delta2 = delta2 < mean_delta12 ? delta2 : mean_delta12;
+    delta2 = std::min(delta2, ((int) d[0b010].count() - delta12));
+    delta2 = std::min(delta2, ((int) d[0b001].count() - delta13));
+    delta2 = std::min(delta2, mean_delta12);
     l2 = HUGE_VAL;
     for (int i = delta1; i <= delta2; ++i) {
       std::bitset<128> I;
@@ -364,12 +368,12 @@ double KTKLDecoder::l(int **words, int h) {
       index_set_union(I, d[0b001], delta13 + i);
       index_set_union(I, d[0b100], i);
       double temp = record_result(I, (int) I.count());
-      if (l1 < temp) {
-        l1 = temp;
+      if (l2 > temp) {
+        l2 = temp;
       }
       ++op_cmp;
     }
-    res = l1 < l2 ? l1 : l2;
+    res = std::min(l1, l2);
     ++op_cmp;
   } else {
     res = HUGE_VAL;
