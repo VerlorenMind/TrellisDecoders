@@ -1,5 +1,6 @@
 #include <iostream>
 #include <Exceptions.h>
+#include <cstring>
 #include "Utility.h"
 
 int **readMatrix(std::ifstream &input, unsigned int n, unsigned int k) {

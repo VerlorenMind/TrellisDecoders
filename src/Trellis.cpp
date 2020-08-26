@@ -389,7 +389,7 @@ void Trellis::reduce_to_weight(unsigned int w) {
     second_0_edge_to_end = trellis[trellis_size - 2].size() - 1;
   }
   // Deleting the all-zero word
-  for(unsigned i = trellis_size-2; i >= 0 && trellis[i][0].next_node[1] == ~0; --i) {
+  for(int i = trellis_size-2; i >= 0 && trellis[i][0].next_node[1] == ~0; --i) {
     delete_node(i, 0);
     trellis[i].shrink_to_fit();
   }
